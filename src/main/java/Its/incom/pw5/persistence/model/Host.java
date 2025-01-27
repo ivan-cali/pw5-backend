@@ -4,7 +4,7 @@ import Its.incom.pw5.persistence.model.enums.Type;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.types.ObjectId;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @MongoEntity(collection = "host")
 public class Host {
@@ -12,8 +12,8 @@ public class Host {
     private Type type;
     private String name;
     private String description;
-    private ArrayList<Event> pastEvents;
-    private ArrayList<Event> programmedEvents;
+    private List<Event> pastEvents;
+    private List<Event> programmedEvents;
 
     public ObjectId getId() {
         return id;
@@ -47,19 +47,19 @@ public class Host {
         this.description = description;
     }
 
-    public ArrayList<Event> getPastEvents() {
+    public List<Event> getPastEvents() {
         return pastEvents;
     }
 
-    public void setPastEvents(ArrayList<Event> pastEvents) {
+    public void setPastEvents(List<Event> pastEvents) {
         this.pastEvents = pastEvents;
     }
 
-    public ArrayList<Event> getProgrammedEvents() {
+    public List<Event> getProgrammedEvents() {
         return programmedEvents;
     }
 
-    public void setProgrammedEvents(ArrayList<Event> programmedEvents) {
+    public void setProgrammedEvents(List<Event> programmedEvents) {
         this.programmedEvents = programmedEvents;
     }
 }
