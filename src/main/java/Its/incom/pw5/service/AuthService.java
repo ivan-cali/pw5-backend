@@ -21,7 +21,7 @@ public class AuthService {
         String hashedPsw = hashCalculator.calculateHash(user.getHashedPsw());
 
         if (user.getFirstName() == null || user.getLastName().isBlank() || user.getLastName() == null || user.getFirstName().isBlank() || user.getEmail() == null || user.getEmail().isBlank() || hashedPsw == null || hashedPsw.isBlank()) {
-            throw new IllegalArgumentException("Campi obbligatori mancanti");
+            throw new IllegalArgumentException("Fields cannot be empty");
         }
 
         User newUser = new User();
@@ -38,7 +38,7 @@ public class AuthService {
     public void checkUserCredentials(User user) {
         String hashedPsw = hashCalculator.calculateHash(user.getHashedPsw());
         if (user.getEmail() == null || user.getEmail().isBlank() || hashedPsw == null || hashedPsw.isBlank()) {
-            throw new IllegalArgumentException("Campi obbligatori mancanti");
+            throw new IllegalArgumentException("Fields cannot be empty");
         }
 
         authRepository.login(user.getEmail(), hashedPsw);
