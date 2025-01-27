@@ -1,33 +1,33 @@
 package Its.incom.pw5.persistence.model;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class UserDetails {
-    private ArrayList<Event> bookedEvents;
-    private ArrayList<Event> archivedEvents;
-    private ArrayList<Event> favouriteTopics;
+    private List<Event> bookedEvents;
+    private List<Event> archivedEvents;
+    private List<Event> favouriteTopics;
 
-    public ArrayList<Event> getBookedEvents() {
+    public List<Event> getBookedEvents() {
         return bookedEvents;
     }
 
-    public void setBookedEvents(ArrayList<Event> bookedEvents) {
+    public void setBookedEvents(List<Event> bookedEvents) {
         this.bookedEvents = bookedEvents;
     }
 
-    public ArrayList<Event> getArchivedEvents() {
+    public List<Event> getArchivedEvents() {
         return archivedEvents;
     }
 
-    public void setArchivedEvents(ArrayList<Event> archivedEvents) {
+    public void setArchivedEvents(List<Event> archivedEvents) {
         this.archivedEvents = archivedEvents;
     }
 
-    public ArrayList<Event> getFavouriteTopics() {
+    public List<Event> getFavouriteTopics() {
         return favouriteTopics;
     }
 
-    public void setFavouriteTopics(ArrayList<Event> favouriteTopics) {
+    public void setFavouriteTopics(List<Event> favouriteTopics) {
         this.favouriteTopics = favouriteTopics;
     }
 }

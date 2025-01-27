@@ -3,13 +3,13 @@ package Its.incom.pw5.persistence.model;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.types.ObjectId;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @MongoEntity(collection = "pendingList")
 public class PendingList {
     private ObjectId id;
     private ObjectId eventId;
-    private ArrayList<String> pendingUsers;
+    private List<String> pendingUsers;
 
     public ObjectId getId() {
         return id;
@@ -27,11 +27,11 @@ public class PendingList {
         this.eventId = eventId;
     }
 
-    public ArrayList<String> getPendingUsers() {
+    public List<String> getPendingUsers() {
         return pendingUsers;
     }
 
-    public void setPendingUsers(ArrayList<String> pendingUsers) {
+    public void setPendingUsers(List<String> pendingUsers) {
         this.pendingUsers = pendingUsers;
     }
 }
