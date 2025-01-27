@@ -35,12 +35,13 @@ public class AuthService {
         authRepository.register(newUser);
     }
 
-    public void checkUserCredentials(User user) {
+    public User checkUserCredentials(User user) {
         String hashedPsw = hashCalculator.calculateHash(user.getHashedPsw());
         if (user.getEmail() == null || user.getEmail().isBlank() || hashedPsw == null || hashedPsw.isBlank()) {
             throw new IllegalArgumentException("Campi obbligatori mancanti");
         }
 
         authRepository.login(user.getEmail(), hashedPsw);
+        return user;
     }
 }
