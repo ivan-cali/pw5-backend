@@ -51,11 +51,15 @@ public class SessionService {
         return sessionRepository.find("cookieValue", cookieValue).firstResult();
     }
 
-    public void deleteSession(String cookieValue) {
-        Session existing = sessionRepository.find("cookieValue", cookieValue).firstResult();
-        if (existing != null) {
-            sessionRepository.delete(existing);
+    public boolean logout(String cookieValue) {
+        // Check if the session exists
+        Session existingSession = sessionRepository.find("cookieValue", cookieValue).firstResult();
+        if (existingSession != null) {
+            // Delete the session
+            sessionRepository.delete(existingSession);
+            return true;
         }
+        return false; // If no session was found, return false
     }
 
     public String findEmailBySessionCookie(String cookieValue) {

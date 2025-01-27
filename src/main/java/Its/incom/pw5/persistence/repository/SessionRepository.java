@@ -14,4 +14,8 @@ public class SessionRepository implements PanacheMongoRepository<Session> {
     public void createSession(Session newSession) {
         persist(newSession);
     }
+
+    public void deleteByCookieValue(String cookieValue) {
+        delete("cookieValue", cookieValue); 
+    }
 }

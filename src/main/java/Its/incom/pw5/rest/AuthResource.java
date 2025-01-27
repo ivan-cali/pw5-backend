@@ -6,6 +6,7 @@ import Its.incom.pw5.persistence.repository.AuthRepository;
 import Its.incom.pw5.service.AuthService;
 import Its.incom.pw5.service.SessionService;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.CookieParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.MediaType;
@@ -19,12 +20,10 @@ import java.time.LocalDateTime;
 public class AuthResource {
     private final AuthService authService;
     private final SessionService sessionService;
-    private final AuthRepository authRepository;
 
     public AuthResource(AuthService authService, Its.incom.pw5.service.SessionService sessionService, AuthRepository authRepository) {
         this.authService = authService;
         this.sessionService = sessionService;
-        this.authRepository = authRepository;
     }
 
     @POST
@@ -69,9 +68,26 @@ public class AuthResource {
 
     @POST
     @Path("/logout")
-    public Response logout() {
-        // TODO: implementare il logout con la rimozione del session cookie
-        return Response.status(Response.Status.OK).entity("Utente disconnesso con successo").build();
-    }
+    public Response logout(@CookieParam("SESSION_ID") String sessionCookie) {
+        if (sessionCookie == null || sessionCookie.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Session cookie is missing.")
+                    .build();
+        }
 
+        boolean success = sessionService.logout(sessionCookie);
+        if (success) {
+            // Invalidate the cookie in the response
+            return Response.status(Response.Status.OK)
+                    .entity("User successfully logged out.")
+                    .cookie(
+                            NewCookie.valueOf("SESSION_ID=; Path=/; HttpOnly; Max-Age=0")
+                    )
+                    .build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Session not found or already invalidated.")
+                    .build();
+        }
+    }
 }
