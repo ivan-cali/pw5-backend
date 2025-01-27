@@ -7,4 +7,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class SessionRepository implements PanacheMongoRepository<Session> {
 
+    public void deleteSession(Session existingSession) {
+        delete(existingSession);
+    }
+
+    public void createSession(Session newSession) {
+        persist(newSession);
+    }
 }

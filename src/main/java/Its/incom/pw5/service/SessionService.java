@@ -15,16 +15,24 @@ public class SessionService {
     SessionRepository sessionRepository;
 
     public Session createOrReuseSession(String email) {
+        // Find an existing session for the email
         Session existingSession = sessionRepository.find(
-                "email = ?1 and expiresIn > ?2",
-                email,
-                LocalDateTime.now()
+                "email = ?1",
+                email
         ).firstResult();
 
         if (existingSession != null) {
-            return existingSession;
+            // Check if the session has expired
+            if (existingSession.getExpiresIn().isBefore(LocalDateTime.now())) {
+                // Delete the expired session
+                sessionRepository.deleteSession(existingSession);
+            } else {
+                // Return the existing session if it is still valid
+                return existingSession;
+            }
         }
 
+        // Create a new session
         Session newSession = new Session();
         newSession.setEmail(email);
 
@@ -33,10 +41,11 @@ public class SessionService {
 
         newSession.setExpiresIn(LocalDateTime.now().plusDays(7));
 
-        sessionRepository.persist(newSession);
+        sessionRepository.createSession(newSession);
 
         return newSession;
     }
+
 
     public Session getSessionByCookieValue(String cookieValue) {
         return sessionRepository.find("cookieValue", cookieValue).firstResult();
