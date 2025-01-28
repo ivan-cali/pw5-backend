@@ -69,4 +69,10 @@ public class UserResource {
         userService.convertStringToObjectId(id);
         return Response.status(Response.Status.NO_CONTENT).build();
     }
+    @GET
+    @Path("/speakers")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<User> getSpeakers() {
+        return userService.getAllSpeakers();
+    }
 }
