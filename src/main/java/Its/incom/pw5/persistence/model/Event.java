@@ -5,6 +5,7 @@ import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @MongoEntity(collection = "event")
@@ -12,13 +13,22 @@ public class Event {
     private ObjectId id;
     private LocalDateTime date;
     private String place;
-    private List<User> speakers;
+    private List<User> speakers = new ArrayList<>(); // Initialize with an empty list
     private List<String> topics;
     private List<Host> hosts;
     private String title;
     private EventStatus status;
+    private List<User> pendingSpeakerRequests;
     private int maxPartecipants;
     private int registerdPartecipants;
+
+    public List<User> getPendingSpeakerRequests() {
+        return pendingSpeakerRequests;
+    }
+
+    public void setPendingSpeakerRequests(List<User> pendingSpeakerRequests) {
+        this.pendingSpeakerRequests = pendingSpeakerRequests;
+    }
 
     public ObjectId getId() {
         return id;

@@ -34,47 +34,105 @@ public class EventService {
     UserService userService;
 
     public Event createEvent(Event event) {
-        // Default status to PENDING if not provided
+        // Set default status to PENDING if not provided
         if (event.getStatus() == null) {
             event.setStatus(EventStatus.PENDING);
         }
 
-        // Validate topics
-        if (event.getTopics() == null || event.getTopics().isEmpty()) {
-            throw new IllegalArgumentException("At least one topic is required.");
-        }
-
-        // Ensure each topic exists or create if not
-        List<String> finalTopics = new ArrayList<>();
-        for (String t : event.getTopics()) {
-            Topic topic = topicService.findOrCreateTopic(t);
-            if (topic != null) {
-                finalTopics.add(topic.getName());
-            }
-        }
-        event.setTopics(finalTopics);
+        // Validate that at least one topic is provided
+        validateTopics(event);
 
         // Persist the Event to generate an ID
         eventRepository.addEvent(event);
         if (event.getId() == null) {
-            throw new IllegalStateException("Failed to persist event, ID is null.");
+            throw new IllegalStateException("Failed to persist event, as the ID is null.");
         }
 
-        // Validate and add SpeakerInbox entries
-        if (event.getSpeakers() != null) {
-            for (User speaker : event.getSpeakers()) {
-                addSpeakerToEvent(speaker, event.getId());
-            }
-        }
+        // Process pending speaker requests
+        processPendingSpeakerRequests(event.getPendingSpeakerRequests(), event.getId());
+
+        event.setPendingSpeakerRequests(null);
 
         return event;
     }
 
     public Event updateEvent(ObjectId id, Event updatedEvent, String speakerEmail) {
-        // Find the event in the database
-        Event existingEvent = eventRepository.findByIdOptional(id)
-                .orElseThrow(() -> new WebApplicationException("Event not found", 404));
+        // Fetch the existing event
+        Event existingEvent = getExistingEvent(id);
 
+        // Validate event dates
+        validateEventDates(existingEvent, updatedEvent);
+
+        // Update editable fields
+        updateEditableFields(existingEvent, updatedEvent);
+
+        // Process pending speaker requests properly
+        if (updatedEvent.getPendingSpeakerRequests() != null && !updatedEvent.getPendingSpeakerRequests().isEmpty()) {
+            List<User> newPendingRequests = new ArrayList<>();
+            for (User speakerRequest : updatedEvent.getPendingSpeakerRequests()) {
+                if (speakerRequest.getEmail() != null) {
+                    User speaker = userService.getUserByEmail(speakerRequest.getEmail());
+                    if (speaker == null) {
+                        throw new WebApplicationException("User not found", 404);
+                    }
+                    addSpeakerToEvent(speaker, existingEvent.getId());
+                    newPendingRequests.add(speakerRequest);
+                }
+            }
+            // Ensure the event stores pending speaker requests
+            existingEvent.setPendingSpeakerRequests(newPendingRequests);
+        }
+
+        // Handle optional speakerEmail query parameter
+        if (speakerEmail != null && !speakerEmail.isBlank()) {
+            User speaker = userService.getUserByEmail(speakerEmail);
+            if (speaker == null) {
+                throw new WebApplicationException("User " + speakerEmail + " does not exist.", 404);
+            }
+            addSpeakerToEvent(speaker, existingEvent.getId());
+        }
+
+        // Persist updated event
+        eventRepository.updateEvent(existingEvent);
+        return existingEvent;
+    }
+
+    private void processPendingSpeakerRequests(List<User> pendingSpeakerRequests, ObjectId eventId) {
+        if (pendingSpeakerRequests != null && !pendingSpeakerRequests.isEmpty()) {
+            for (User speakerRequest : pendingSpeakerRequests) {
+                try {
+                    addSpeakerToEvent(speakerRequest, eventId);
+                } catch (WebApplicationException e) {
+                    // Log the error and propagate it to the client
+                    System.err.println("Error processing speaker request for email: "
+                            + speakerRequest.getEmail() + ". Error: " + e.getMessage());
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private Event getExistingEvent(ObjectId id) {
+        return eventRepository.findByIdOptional(id)
+                .orElseThrow(() -> new WebApplicationException("Event not found", 404));
+    }
+
+    private void validateTopics(Event event) {
+        if (event.getTopics() == null || event.getTopics().isEmpty()) {
+            throw new IllegalArgumentException("At least one topic is required.");
+        }
+
+        List<String> finalTopics = new ArrayList<>();
+        for (String topicName : event.getTopics()) {
+            Topic topic = topicService.findOrCreateTopic(topicName);
+            if (topic != null) {
+                finalTopics.add(topic.getName());
+            }
+        }
+        event.setTopics(finalTopics);
+    }
+
+    private void validateEventDates(Event existingEvent, Event updatedEvent) {
         // Check if the event has already occurred
         if (existingEvent.getDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException("Event cannot be updated because it has already occurred.", 400);
@@ -85,12 +143,13 @@ public class EventService {
             throw new WebApplicationException("Event cannot be updated as it is less than 2 weeks away.", 400);
         }
 
-        // Ensure the new date is at least 2 weeks away if it is being updated
+        // Ensure the new date is at least 2 weeks away if being updated
         if (updatedEvent.getDate() != null && updatedEvent.getDate().isBefore(LocalDateTime.now().plusWeeks(2))) {
             throw new WebApplicationException("The new event date must be at least 2 weeks from today.", 400);
         }
+    }
 
-        // Update editable fields
+    private void updateEditableFields(Event existingEvent, Event updatedEvent) {
         if (updatedEvent.getPlace() != null) {
             existingEvent.setPlace(updatedEvent.getPlace());
         }
@@ -103,64 +162,39 @@ public class EventService {
         if (updatedEvent.getMaxPartecipants() > 0) {
             existingEvent.setMaxPartecipants(updatedEvent.getMaxPartecipants());
         }
-
-        // Process and add speakers if provided
-        if (updatedEvent.getSpeakers() != null && !updatedEvent.getSpeakers().isEmpty()) {
-            for (User speaker : updatedEvent.getSpeakers()) {
-                addSpeakerToEvent(speaker, existingEvent.getId());
-            }
-        }
-
-        // Process optional speakerEmail query param if provided
-        if (speakerEmail != null && !speakerEmail.isBlank()) {
-            User speaker = userService.getUserByEmail(speakerEmail);
-            if (speaker == null) {
-                throw new WebApplicationException("User " + speakerEmail + " does not exist.", 400);
-            }
-            addSpeakerToEvent(speaker, existingEvent.getId());
-        }
-
-        // Persist updated event
-        eventRepository.updateEvent(existingEvent);
-        return existingEvent;
     }
 
     private void addSpeakerToEvent(User speaker, ObjectId eventId) {
         // Fetch the full user object from the database
         User fullSpeaker = userService.getUserByEmail(speaker.getEmail());
         if (fullSpeaker == null) {
-            throw new WebApplicationException("User " + speaker.getEmail() + " does not exist.", 400);
+            throw new WebApplicationException("User " + speaker.getEmail() + " does not exist.", 404);
         }
 
         // Validate speaker role
         if (fullSpeaker.getRole() == null || !fullSpeaker.getRole().equals(Role.SPEAKER)) {
-            String errorMessage = "User " + fullSpeaker.getEmail() + " is not a SPEAKER.";
-            System.err.println(errorMessage); // Log the error
-            throw new WebApplicationException(errorMessage, 400);
+            throw new WebApplicationException("User " + fullSpeaker.getEmail() + " is not a SPEAKER.", 400);
         }
 
-        // Check for duplicates before persisting
+        // Check for duplicates in the SpeakerInbox
         boolean duplicateRequest = speakerInboxRepository.find(
                 "speakerEmail = ?1 and eventId = ?2",
                 fullSpeaker.getEmail(), eventId
         ).firstResultOptional().isPresent();
 
         if (duplicateRequest) {
-            String errorMessage = "Duplicate speaker request detected for email: "
-                    + fullSpeaker.getEmail() + " and eventId: " + eventId;
-            System.err.println(errorMessage); // Log the error
-            throw new WebApplicationException(errorMessage, 400);
+            throw new WebApplicationException(
+                    "Duplicate speaker request detected for email: " + fullSpeaker.getEmail(), 400);
         }
 
-        // If no duplicate, create and persist the SpeakerInbox
+        // Create a new SpeakerInbox entry with PENDING status
         SpeakerInbox inbox = new SpeakerInbox();
         inbox.setSpeakerEmail(fullSpeaker.getEmail());
         inbox.setEventId(eventId);
         inbox.setStatus(SpeakerInboxStatus.PENDING);
         speakerInboxRepository.addSpeakerInbox(inbox);
 
-        // Log successful creation
-        System.out.println("SpeakerInbox created for: " + fullSpeaker.getEmail());
-        System.out.println("SpeakerInbox created for EventId: " + eventId);
+        // Log successful request
+        System.out.println("Speaker request created for: " + fullSpeaker.getEmail());
     }
 }
