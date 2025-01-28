@@ -1,6 +1,7 @@
 package Its.incom.pw5.service;
 
 import Its.incom.pw5.persistence.model.Session;
+import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.repository.SessionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -78,5 +79,9 @@ public class SessionService {
     public String findEmailBySessionCookie(String cookieValue) {
         Session session = getSessionByCookieValue(cookieValue);
         return (session != null) ? session.getUserId() : null;
+    }
+
+    public Session getSession(String sessionId) {
+        return sessionRepository.find("cookieValue", sessionId).firstResult();
     }
 }

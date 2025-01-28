@@ -5,12 +5,18 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 import Its.incom.pw5.persistence.model.User;
 
+import java.util.List;
+
 @ApplicationScoped
 public class UserService {
     private final UserRepository userRepository;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
+    }
+
+    public User getUser(User user) {
+        return userRepository.getUserByEmail(user.getEmail());
     }
 
     public void convertStringToObjectId(String id) {
@@ -21,7 +27,11 @@ public class UserService {
         userRepository.deleteUserById(objectId);
     }
 
-    public User getUser(User user) {
-        return userRepository.getUserByEmail(user.getEmail());
+    public List<User> getAllUsers() {
+        return userRepository.getAllUsers();
+    }
+
+    public User getUserById(String sessionId) {
+        return userRepository.getById(sessionId);
     }
 }

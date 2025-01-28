@@ -20,4 +20,12 @@ public class UserRepository implements PanacheMongoRepository<User> {
     public User getUserByEmail(String email) {
         return find("email", email).firstResult();
     }
+
+    public List<User> getAllUsers() {
+        return listAll();
+    }
+
+    public User getById(String userId) {
+        return findById(new ObjectId(userId));
+    }
 }
