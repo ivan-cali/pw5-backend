@@ -2,7 +2,6 @@ package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
-import Its.incom.pw5.persistence.repository.AuthRepository;
 import Its.incom.pw5.service.AuthService;
 import Its.incom.pw5.service.SessionService;
 import jakarta.ws.rs.Consumes;
@@ -21,7 +20,7 @@ public class AuthResource {
     private final AuthService authService;
     private final SessionService sessionService;
 
-    public AuthResource(AuthService authService, Its.incom.pw5.service.SessionService sessionService, AuthRepository authRepository) {
+    public AuthResource(AuthService authService, Its.incom.pw5.service.SessionService sessionService) {
         this.authService = authService;
         this.sessionService = sessionService;
     }
@@ -31,7 +30,7 @@ public class AuthResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response register(User user) {
         authService.checkNewUserCredentials(user);
-        return Response.status(Response.Status.CREATED).entity("Utente registrato con successo").build();
+        return Response.status(Response.Status.CREATED).entity("User successfully registered.").build();
     }
 
     @POST
@@ -43,7 +42,7 @@ public class AuthResource {
         if (validUser == null) {
             // Authentication failed
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Credenziali non valide.")
+                    .entity("Invalid credentials.")
                     .build();
         }
         Session session = sessionService.createOrReuseSession(validUser.getEmail());
@@ -61,7 +60,7 @@ public class AuthResource {
         );
 
         return Response
-                .ok("Utente loggato con successo.")
+                .ok("User successfully logged in.")
                 .cookie(sessionCookie)
                 .build();
     }
