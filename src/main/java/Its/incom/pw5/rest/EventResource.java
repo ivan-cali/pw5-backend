@@ -30,10 +30,12 @@ public class EventResource {
 
     @PUT
     @Path("/{id}")
-    public Response updateEvent(@PathParam("id") ObjectId id, Event updatedEvent) {
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateEvent(@PathParam("id") ObjectId id, Event updatedEvent, @QueryParam("speakerEmail") String speakerEmail) {
         try {
             // Ensure the event is updated only if the date is at least 2 weeks away
-            Event event = eventService.updateEvent(id, updatedEvent);
+            Event event = eventService.updateEvent(id, updatedEvent, speakerEmail);
             return Response.ok(event).build();
         } catch (WebApplicationException ex) {
             return Response.status(ex.getResponse().getStatus())
