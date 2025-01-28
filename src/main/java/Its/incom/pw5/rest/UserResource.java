@@ -69,4 +69,30 @@ public class UserResource {
         userService.convertStringToObjectId(id);
         return Response.status(Response.Status.NO_CONTENT).build();
     }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response updateUserToSpeaker(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
+        }
+
+        if (Role.SPEAKER == user.getRole()) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is already a speaker.").build();
+        }
+
+        userService.updateUserToSpeaker(user);
+
+        return Response.status(Response.Status.NO_CONTENT).build();
+    }
 }

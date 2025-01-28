@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.repository.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
@@ -33,5 +34,11 @@ public class UserService {
 
     public User getUserById(String sessionId) {
         return userRepository.getById(sessionId);
+    }
+
+    public void updateUserToSpeaker(User user) {
+        User updatedUser = userRepository.getUserByEmail(user.getEmail());
+        updatedUser.setRole(Role.SPEAKER);
+        userRepository.updateUserToSpeaker(updatedUser);
     }
 }
