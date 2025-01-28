@@ -2,7 +2,10 @@ package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.VerificationToken;
+import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.service.AuthService;
+import Its.incom.pw5.service.MailService;
 import Its.incom.pw5.service.SessionService;
 import Its.incom.pw5.service.UserService;
 import jakarta.ws.rs.*;
@@ -18,11 +21,13 @@ public class AuthResource {
     private final AuthService authService;
     private final SessionService sessionService;
     private final UserService userService;
+    private final MailService mailService;
 
-    public AuthResource(AuthService authService, Its.incom.pw5.service.SessionService sessionService, UserService userService) {
+    public AuthResource(AuthService authService, SessionService sessionService, UserService userService, MailService mailService) {
         this.authService = authService;
         this.sessionService = sessionService;
         this.userService = userService;
+        this.mailService = mailService;
     }
 
     @POST
@@ -30,6 +35,8 @@ public class AuthResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response register(User user) {
         authService.checkNewUserCredentials(user);
+        mailService.sendVerificationMail(user.getEmail());
+
         return Response.status(Response.Status.CREATED).entity("User successfully registered.").build();
     }
 
@@ -64,6 +71,61 @@ public class AuthResource {
                 .cookie(sessionCookie)
                 .build();
     }
+
+    @PUT
+    @Path("/confirm/{token}")
+    public Response confirm(@PathParam("token") String token) {
+        VerificationToken verificationToken = mailService.getVerificationToken(token);
+        if (verificationToken == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Token not found.")
+                    .build();
+        }
+
+        User user = userService.getUserByEmail(verificationToken.getEmail());
+        if (user == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("User not found.")
+                    .build();
+        }
+
+        userService.confirmUser(user);
+
+        return Response.status(Response.Status.OK)
+                .entity("User successfully confirmed.")
+                .build();
+    }
+
+    @GET
+    @Path("/sendConfirmationMail")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response sendConfirmationMail(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
+        }
+
+        if (user.getStatus() == UserStatus.VERIFIED) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("User is already verified.")
+                    .build();
+        }
+
+        mailService.sendVerificationMail(user.getEmail());
+        return Response.status(Response.Status.OK)
+                .entity("Confirmation mail sent.")
+                .build();
+    }
+
 
     @DELETE
     @Path("/logout")

@@ -29,6 +29,10 @@ public class UserRepository implements PanacheMongoRepository<User> {
         return findById(new ObjectId(userId));
     }
 
+    public void updateUser(User user) {
+        update(user);
+    }
+
     public void updateUserToSpeaker(User updtedUser) {
         update(updtedUser);
     }
