@@ -10,4 +10,8 @@ public class EventRepository implements PanacheMongoRepository<Event> {
     public void addEvent(Event event) {
         persist(event);
     }
+
+    public void updateEvent(Event existingEvent) {
+        update(existingEvent);
+    }
 }
