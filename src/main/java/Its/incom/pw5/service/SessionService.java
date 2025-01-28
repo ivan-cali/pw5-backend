@@ -16,23 +16,35 @@ public class SessionService {
     SessionRepository sessionRepository;
 
     public Session createOrReuseSession(String objectId) {
+        // Debugging: Log the objectId being searched
+        System.out.println("Searching for existing session with objectId: " + objectId);
+
         // Find an existing session for the object ID
-        Session existingSession = sessionRepository.find("objectId", objectId).firstResult();
+        Session existingSession = sessionRepository.find("userId", objectId).firstResult();
 
         if (existingSession != null) {
-            // Check if the session has expired
-            if (existingSession.getExpiresIn().isBefore(LocalDateTime.now())) {
-                // Delete the expired session
-                sessionRepository.deleteSession(existingSession);
-            } else {
-                // Return the existing session if it is still valid
-                return existingSession;
+            System.out.println("Existing session found: " + existingSession);
+
+            // Check if the session is valid and not older than 7 days
+            if (existingSession.getExpiresIn() != null) {
+                if (existingSession.getExpiresIn().isAfter(LocalDateTime.now())) {
+                    System.out.println("Existing session is still valid. Reusing session.");
+                    return existingSession;
+                } else if (existingSession.getExpiresIn().isBefore(LocalDateTime.now().minusDays(7))) {
+                    System.out.println("Existing session is older than 7 days. Deleting session.");
+                    sessionRepository.deleteSession(existingSession);
+                } else {
+                    System.out.println("Existing session has expired. Deleting session.");
+                    sessionRepository.deleteSession(existingSession);
+                }
             }
+        } else {
+            System.out.println("No existing session found for objectId: " + objectId);
         }
 
-        // Create a new session
+        // Create a new session if no valid session exists or the session is older than 7 days
+        System.out.println("Creating a new session for objectId: " + objectId);
         Session newSession = new Session();
-
         newSession.setUserId(objectId);
 
         String generatedCookieValue = UUID.randomUUID().toString();
@@ -41,9 +53,11 @@ public class SessionService {
         newSession.setExpiresIn(LocalDateTime.now().plusDays(7));
 
         sessionRepository.createSession(newSession);
+        System.out.println("New session created: " + newSession);
 
         return newSession;
     }
+
 
 
     public Session getSessionByCookieValue(String cookieValue) {
