@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.persistence.repository.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
@@ -33,5 +34,14 @@ public class UserService {
 
     public User getUserById(String sessionId) {
         return userRepository.getById(sessionId);
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.getUserByEmail(email);
+    }
+
+    public void confirmUser(User user) {
+        user.setStatus(UserStatus.VERIFIED);
+        userRepository.updateUser(user);
     }
 }
