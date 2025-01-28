@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @MongoEntity(collection = "session")
 public class Session {
     private ObjectId id;
-    private String email;
+    private String userId;
     private String cookieValue;
     private LocalDateTime expiresIn;
 
@@ -22,12 +22,12 @@ public class Session {
         this.id = id;
     }
 
-    public String getEmail() {
-        return email;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getCookieValue() {

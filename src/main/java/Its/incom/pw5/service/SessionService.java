@@ -4,6 +4,7 @@ import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.repository.SessionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,12 +15,9 @@ public class SessionService {
     @Inject
     SessionRepository sessionRepository;
 
-    public Session createOrReuseSession(String email) {
-        // Find an existing session for the email
-        Session existingSession = sessionRepository.find(
-                "email = ?1",
-                email
-        ).firstResult();
+    public Session createOrReuseSession(String objectId) {
+        // Find an existing session for the object ID
+        Session existingSession = sessionRepository.find("objectId", objectId).firstResult();
 
         if (existingSession != null) {
             // Check if the session has expired
@@ -34,7 +32,8 @@ public class SessionService {
 
         // Create a new session
         Session newSession = new Session();
-        newSession.setEmail(email);
+
+        newSession.setUserId(objectId);
 
         String generatedCookieValue = UUID.randomUUID().toString();
         newSession.setCookieValue(generatedCookieValue);
@@ -64,6 +63,6 @@ public class SessionService {
 
     public String findEmailBySessionCookie(String cookieValue) {
         Session session = getSessionByCookieValue(cookieValue);
-        return (session != null) ? session.getEmail() : null;
+        return (session != null) ? session.getUserId() : null;
     }
 }

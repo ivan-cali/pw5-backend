@@ -4,10 +4,8 @@ import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.service.AuthService;
 import Its.incom.pw5.service.SessionService;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.CookieParam;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
+import Its.incom.pw5.service.UserService;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
@@ -19,10 +17,12 @@ import java.time.LocalDateTime;
 public class AuthResource {
     private final AuthService authService;
     private final SessionService sessionService;
+    private final UserService userService;
 
-    public AuthResource(AuthService authService, Its.incom.pw5.service.SessionService sessionService) {
+    public AuthResource(AuthService authService, Its.incom.pw5.service.SessionService sessionService, UserService userService) {
         this.authService = authService;
         this.sessionService = sessionService;
+        this.userService = userService;
     }
 
     @POST
@@ -37,7 +37,7 @@ public class AuthResource {
     @Path("/login")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response login(User user) {
-        User validUser = authService.checkUserCredentials(user);
+        User validUser = userService.getUser(user);
 
         if (validUser == null) {
             // Authentication failed
@@ -45,7 +45,7 @@ public class AuthResource {
                     .entity("Invalid credentials.")
                     .build();
         }
-        Session session = sessionService.createOrReuseSession(validUser.getEmail());
+        Session session = sessionService.createOrReuseSession(String.valueOf(validUser.getId()));
         String sessionCookieValue = session.getCookieValue();
 
 
@@ -65,7 +65,7 @@ public class AuthResource {
                 .build();
     }
 
-    @POST
+    @DELETE
     @Path("/logout")
     public Response logout(@CookieParam("SESSION_ID") String sessionCookie) {
         if (sessionCookie == null || sessionCookie.isEmpty()) {
