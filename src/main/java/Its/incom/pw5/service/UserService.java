@@ -2,6 +2,7 @@ package Its.incom.pw5.service;
 
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.repository.UserRepository;
+import Its.incom.pw5.rest.model.SpeakerResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 import Its.incom.pw5.persistence.model.User;
@@ -36,8 +37,16 @@ public class UserService {
         return userRepository.getById(sessionId);
     }
 
-    public List<User> getAllSpeakers() {
-        return userRepository.getAllByRole(Role.SPEAKER);
+    public List<SpeakerResponse> getAllSpeakers() {
+        return userRepository.getAllByRole(Role.SPEAKER).stream()
+                .map(user -> new SpeakerResponse(
+                        user.getId(),
+                        user.getFirstName(),
+                        user.getLastName(),
+                        user.getEmail(),
+                        user.getRole()
+                ))
+                .toList();
     }
 }
 
