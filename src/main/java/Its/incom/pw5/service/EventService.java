@@ -2,11 +2,13 @@ package Its.incom.pw5.service;
 
 import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.Topic;
+import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
@@ -15,12 +17,15 @@ import java.util.List;
 
 @ApplicationScoped
 public class EventService {
+    private final EventRepository eventRepository;
+    private final TopicService topicService;
+    private final UserService userService;
 
-    @Inject
-    EventRepository eventRepository;
-
-    @Inject
-    TopicService topicService;
+    public EventService(EventRepository eventRepository, TopicService topicService, UserService userService) {
+        this.eventRepository = eventRepository;
+        this.topicService = topicService;
+        this.userService = userService;
+    }
 
     public Event createEvent(Event event) {
         // Default status to PENDING if not provided
@@ -85,5 +90,92 @@ public class EventService {
         // Persist updated event
         eventRepository.updateEvent(existingEvent);
         return existingEvent;
+    }
+
+    public void checkAndBookEvent(Event event, User user) {
+        // Check if the event is provided
+        if (event.getId() == null) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Event body is required.").build());
+        }
+
+        // Find the event in the database
+        Event existingEvent = eventRepository.findByIdOptional(event.getId())
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity("Event not found.").build()));
+
+        // Check if the user has already booked the event
+        if (user.getUserDetails().getBookedEvents().contains(existingEvent)) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("User has already booked this event.").build());
+        }
+
+        // Check if the event has already occurred
+        if (existingEvent.getDate().isBefore(LocalDateTime.now())) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Event has already occurred.").build());
+        }
+
+        // Check if the event is full
+        if (existingEvent.getMaxPartecipants() > 0 && existingEvent.getRegisterdPartecipants() >= existingEvent.getMaxPartecipants()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Event is full.").build());
+        }
+
+        // Add the user to the event
+        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
+        user.getUserDetails().getBookedEvents().add(existingEvent);
+
+        // Persist the updated event and user
+        eventRepository.updateEvent(existingEvent);
+        userService.updateUserBookedEvents(user);
+    }
+
+    public void checkAndRevokeEvent(Event event, User user) {
+        // Check if the event is provided
+        if (event.getId() == null) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Event body is required.").build());
+        }
+
+        // Find the event in the database
+        Event existingEvent = eventRepository.findByIdOptional(event.getId())
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity("Event not found.").build()));
+
+        // Check if the user has already booked the event
+        if (!user.getUserDetails().getBookedEvents().contains(existingEvent)) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("User has not booked this event.").build());
+        }
+
+        // Check if the event has already occurred
+        if (existingEvent.getDate().isBefore(LocalDateTime.now())) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Event has already occurred.").build());
+        }
+
+        // Remove the user from the event
+        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() - 1);
+
+        // Remove the event from the user's booked events
+        List<Event> bookedEvents = user.getUserDetails().getBookedEvents();
+        for (Event e : bookedEvents) {
+            if (e.getId().equals(existingEvent.getId())) {
+                bookedEvents.remove(e);
+                break;
+            }
+        }
+        user.getUserDetails().setBookedEvents(bookedEvents);
+
+        // Persist the updated event and user
+        eventRepository.updateEvent(existingEvent);
+        userService.updateUserBookedEvents(user);
+    }
+
+    public Event getEventById(Event eventId) {
+        return eventRepository.findByIdOptional(eventId.getId())
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity("Event not found.").build()));
     }
 }

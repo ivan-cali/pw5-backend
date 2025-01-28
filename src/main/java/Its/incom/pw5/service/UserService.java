@@ -50,13 +50,13 @@ public class UserService {
     public void updateUserToSpeaker(User user) {
         User updatedUser = userRepository.getUserByEmail(user.getEmail());
         updatedUser.setRole(Role.SPEAKER);
-        userRepository.updateUserToSpeaker(updatedUser);
+        userRepository.updateUser(updatedUser);
     }
 
     public void updateSpeakerToUser(User user) {
         User updatedUser = userRepository.getUserByEmail(user.getEmail());
         updatedUser.setRole(Role.USER);
-        userRepository.updateSpeakerToUser(updatedUser);
+        userRepository.updateUser(updatedUser);
     }
 
     public List<SpeakerResponse> getAllSpeakers() {
@@ -69,5 +69,9 @@ public class UserService {
                         user.getRole()
                 ))
                 .toList();
+    }
+
+    public void updateUserBookedEvents(User user) {
+        userRepository.updateUser(user);
     }
 }

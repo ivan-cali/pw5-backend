@@ -1,20 +1,35 @@
 package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.Event;
+import Its.incom.pw5.persistence.model.Session;
+import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.service.EventService;
-import jakarta.inject.Inject;
+import Its.incom.pw5.service.MailService;
+import Its.incom.pw5.service.SessionService;
+import Its.incom.pw5.service.UserService;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
-@Path("/events")
+import java.util.List;
+
+@Path("/event")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class EventResource {
+    private final EventService eventService;
+    private final SessionService sessionService;
+    private final UserService userService;
+    private final MailService mailService;
 
-    @Inject
-    EventService eventService;
+    public EventResource(EventService eventService, SessionService sessionService, UserService userService, MailService mailService) {
+        this.eventService = eventService;
+        this.sessionService = sessionService;
+        this.userService = userService;
+        this.mailService = mailService;
+    }
 
     @POST
     public Response createEvent(Event event) {
@@ -42,5 +57,134 @@ public class EventResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("An unexpected error occurred.").build();
         }
+    }
+
+    @PUT
+    @Path("/book")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response bookEvent(@CookieParam("SESSION_ID") String sessionId, Event eventId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session ID is required.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session ID.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User not found.").build();
+        }
+
+        if (UserStatus.VERIFIED != user.getStatus()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not verified.").build();
+        }
+
+        eventService.checkAndBookEvent(eventId, user);
+
+        Event event = eventService.getEventById(eventId);
+
+        mailService.sendBookingConfirmationMail(user.getEmail(), event);
+
+        return Response.ok().entity("Event booked successfully. An email confirmation has been sent.").build();
+    }
+
+    @PUT
+    @Path("/revoke")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response revokeEvent(@CookieParam("SESSION_ID") String sessionId, Event eventId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session ID is required.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session ID.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User not found.").build();
+        }
+
+        if (UserStatus.VERIFIED != user.getStatus()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not verified.").build();
+        }
+
+        eventService.checkAndRevokeEvent(eventId, user);
+
+        Event event = eventService.getEventById(eventId);
+
+        mailService.sendBookingRevocationMail(user.getEmail(), event);
+
+        return Response.ok().entity("Event revoked successfully. An email confirmation has been sent.").build();
+    }
+
+    @GET
+    @Path("/booked")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Event> getUserBookedEvents(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session ID is required.").build());
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session ID.").build());
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (user == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User not found.").build());
+        }
+
+        if (UserStatus.VERIFIED != user.getStatus()) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not verified.").build());
+        }
+
+        return user.getUserDetails().getBookedEvents();
+    }
+
+    @GET
+    @Path("/archived")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Event> getArchivedEvents(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session ID is required.").build());
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session ID.").build());
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (user == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User not found.").build());
+        }
+
+        if (UserStatus.VERIFIED != user.getStatus()) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not verified.").build());
+        }
+
+        return user.getUserDetails().getArchivedEvents();
+
     }
 }

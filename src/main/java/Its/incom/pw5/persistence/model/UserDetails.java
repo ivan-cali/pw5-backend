@@ -5,7 +5,7 @@ import java.util.List;
 public class UserDetails {
     private List<Event> bookedEvents;
     private List<Event> archivedEvents;
-    private List<Event> favouriteTopics;
+    private List<Topic> favouriteTopics;
 
     public List<Event> getBookedEvents() {
         return bookedEvents;
@@ -23,11 +23,11 @@ public class UserDetails {
         this.archivedEvents = archivedEvents;
     }
 
-    public List<Event> getFavouriteTopics() {
+    public List<Topic> getFavouriteTopics() {
         return favouriteTopics;
     }
 
-    public void setFavouriteTopics(List<Event> favouriteTopics) {
+    public void setFavouriteTopics(List<Topic> favouriteTopics) {
         this.favouriteTopics = favouriteTopics;
     }
 }

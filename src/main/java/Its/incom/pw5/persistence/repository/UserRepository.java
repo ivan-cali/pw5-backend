@@ -1,5 +1,6 @@
 package Its.incom.pw5.persistence.repository;
 
+import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.Role;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
@@ -34,15 +35,7 @@ public class UserRepository implements PanacheMongoRepository<User> {
         return find("role", role).list();
     }
 
-    public void updateUser(User user) {
-        update(user);
-    }
-
-    public void updateUserToSpeaker(User updtedUser) {
-        update(updtedUser);
-    }
-
-    public void updateSpeakerToUser(User updatedUser) {
+    public void updateUser(User updatedUser) {
         update(updatedUser);
     }
 }
