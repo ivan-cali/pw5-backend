@@ -3,6 +3,7 @@ package Its.incom.pw5.rest;
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.Role;
+import Its.incom.pw5.rest.model.SpeakerResponse;
 import Its.incom.pw5.service.SessionService;
 import Its.incom.pw5.service.UserService;
 import jakarta.ws.rs.*;
@@ -68,5 +69,11 @@ public class UserResource {
 
         userService.convertStringToObjectId(id);
         return Response.status(Response.Status.NO_CONTENT).build();
+    }
+    @GET
+    @Path("/speakers")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<SpeakerResponse> getSpeakers() {
+        return userService.getAllSpeakers();
     }
 }
