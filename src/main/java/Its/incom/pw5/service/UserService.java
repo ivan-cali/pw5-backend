@@ -51,4 +51,10 @@ public class UserService {
         updatedUser.setRole(Role.SPEAKER);
         userRepository.updateUserToSpeaker(updatedUser);
     }
+
+    public void updateSpeakerToUser(User user) {
+        User updatedUser = userRepository.getUserByEmail(user.getEmail());
+        updatedUser.setRole(Role.USER);
+        userRepository.updateSpeakerToUser(updatedUser);
+    }
 }

@@ -97,7 +97,7 @@ public class AuthResource {
     }
 
     @GET
-    @Path("/sendConfirmationMail")
+    @Path("/send-confirmation-mail")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response sendConfirmationMail(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {

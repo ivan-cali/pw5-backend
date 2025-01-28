@@ -3,6 +3,7 @@ package Its.incom.pw5.rest;
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.Role;
+import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.service.SessionService;
 import Its.incom.pw5.service.UserService;
 import jakarta.ws.rs.*;
@@ -87,12 +88,16 @@ public class UserResource {
             return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
         }
 
-        if (Role.SPEAKER == user.getRole()) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is already a speaker.").build();
+        if (UserStatus.VERIFIED != user.getStatus()) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("User not verified.").build();
         }
 
-        userService.updateUserToSpeaker(user);
-
-        return Response.status(Response.Status.NO_CONTENT).build();
+        if (Role.SPEAKER == user.getRole()) {
+            userService.updateSpeakerToUser(user);
+            return Response.status(Response.Status.OK).entity("Speaker updated to User.").build();
+        } else {
+            userService.updateUserToSpeaker(user);
+            return Response.status(Response.Status.OK).entity("User updated to Speaker.").build();
+        }
     }
 }

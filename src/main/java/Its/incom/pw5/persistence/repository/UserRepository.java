@@ -36,4 +36,8 @@ public class UserRepository implements PanacheMongoRepository<User> {
     public void updateUserToSpeaker(User updtedUser) {
         update(updtedUser);
     }
+
+    public void updateSpeakerToUser(User updatedUser) {
+        update(updatedUser);
+    }
 }
