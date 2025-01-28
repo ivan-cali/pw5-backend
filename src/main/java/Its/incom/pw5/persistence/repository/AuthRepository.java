@@ -10,7 +10,7 @@ public class AuthRepository implements PanacheMongoRepository<User> {
     public void register(User user) {
         User u = find("email", user.getEmail()).firstResult();
         if (u != null) {
-            throw new IllegalArgumentException("Utente già presente");
+            throw new IllegalArgumentException("User already exists");
         }
         persist(user);
     }
@@ -18,10 +18,10 @@ public class AuthRepository implements PanacheMongoRepository<User> {
     public void login(String email, String hashedPsw) {
         User u = find("email", email).firstResult();
         if (u == null) {
-            throw new IllegalArgumentException("Utente non trovato");
+            throw new IllegalArgumentException("User not found");
         }
         if (!u.getHashedPsw().equals(hashedPsw)) {
-            throw new IllegalArgumentException("Password errata");
+            throw new IllegalArgumentException("Invalid password");
         }
     }
 }

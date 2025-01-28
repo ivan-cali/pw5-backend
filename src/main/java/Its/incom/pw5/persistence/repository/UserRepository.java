@@ -16,4 +16,8 @@ public class UserRepository implements PanacheMongoRepository<User> {
     public void deleteUserById(ObjectId id) {
         deleteById(id);
     }
+
+    public User getUserByEmail(String email) {
+        return find("email", email).firstResult();
+    }
 }

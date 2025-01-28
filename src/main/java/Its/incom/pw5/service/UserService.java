@@ -3,6 +3,7 @@ package Its.incom.pw5.service;
 import Its.incom.pw5.persistence.repository.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
+import Its.incom.pw5.persistence.model.User;
 
 @ApplicationScoped
 public class UserService {
@@ -18,5 +19,9 @@ public class UserService {
         }
         ObjectId objectId = new ObjectId(id);
         userRepository.deleteUserById(objectId);
+    }
+
+    public User getUser(User user) {
+        return userRepository.getUserByEmail(user.getEmail());
     }
 }

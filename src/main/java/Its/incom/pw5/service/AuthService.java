@@ -21,7 +21,7 @@ public class AuthService {
         String hashedPsw = hashCalculator.calculateHash(user.getHashedPsw());
 
         if (user.getFirstName() == null || user.getLastName().isBlank() || user.getLastName() == null || user.getFirstName().isBlank() || user.getEmail() == null || user.getEmail().isBlank() || hashedPsw == null || hashedPsw.isBlank()) {
-            throw new IllegalArgumentException("Fields cannot be empty");
+            throw new IllegalArgumentException("Missing required fields");
         }
 
         User newUser = new User();
@@ -35,12 +35,13 @@ public class AuthService {
         authRepository.register(newUser);
     }
 
-    public void checkUserCredentials(User user) {
+    public User checkUserCredentials(User user) {
         String hashedPsw = hashCalculator.calculateHash(user.getHashedPsw());
         if (user.getEmail() == null || user.getEmail().isBlank() || hashedPsw == null || hashedPsw.isBlank()) {
-            throw new IllegalArgumentException("Fields cannot be empty");
+            throw new IllegalArgumentException("Missing required fields");
         }
 
         authRepository.login(user.getEmail(), hashedPsw);
+        return user;
     }
 }
