@@ -5,7 +5,6 @@ import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.repository.SessionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -15,6 +14,9 @@ public class SessionService {
 
     @Inject
     SessionRepository sessionRepository;
+
+    @Inject
+    UserService userService;
 
     public Session createOrReuseSession(String objectId) {
         // Debugging: Log the objectId being searched
@@ -76,9 +78,21 @@ public class SessionService {
         return false; // If no session was found, return false
     }
 
-    public String findEmailBySessionCookie(String cookieValue) {
+    public String findIdBySessionCookie(String cookieValue) {
         Session session = getSessionByCookieValue(cookieValue);
         return (session != null) ? session.getUserId() : null;
+    }
+
+    public String findEmailBySessionCookie(String cookieValue) {
+        // Find the session based on the cookie value
+        Session session = getSessionByCookieValue(cookieValue);
+        if (session == null) {
+            return null;
+        }
+
+        // Use the userId to fetch the User object and return the email
+        User user = userService.getUserById(session.getUserId());
+        return (user != null) ? user.getEmail() : null;
     }
 
     public Session getSession(String sessionId) {

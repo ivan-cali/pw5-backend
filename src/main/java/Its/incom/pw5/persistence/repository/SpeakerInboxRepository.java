@@ -5,6 +5,8 @@ import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
+import java.util.List;
+
 @ApplicationScoped
 public class SpeakerInboxRepository implements PanacheMongoRepository<SpeakerInbox> {
 
@@ -18,5 +20,9 @@ public class SpeakerInboxRepository implements PanacheMongoRepository<SpeakerInb
 
     public SpeakerInbox findById(ObjectId id) {
         return findByIdOptional(id).orElse(null);
+    }
+
+    public List<SpeakerInbox> findBySpeakerEmail(String email) {
+        return find("speakerEmail", email).list();
     }
 }

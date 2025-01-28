@@ -8,11 +8,16 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import org.bson.types.ObjectId;
 
+import java.util.List;
+
 @ApplicationScoped
 public class SpeakerInboxService {
 
     @Inject
     SpeakerInboxRepository speakerInboxRepository;
+
+    @Inject
+    SessionService sessionService;
 
     public SpeakerInbox confirmRequest(ObjectId inboxId) {
         return updateRequestStatusIfPending(inboxId, SpeakerInboxStatus.CONFIRMED);
@@ -37,5 +42,25 @@ public class SpeakerInboxService {
         speakerInboxRepository.update(inbox);
 
         return inbox;
+    }
+
+    public List<SpeakerInbox> getRequestsForUser(String sessionCookie) {
+        // Resolve user email from the session cookie
+        String userEmail = sessionService.findEmailBySessionCookie(sessionCookie);
+
+        if (userEmail == null) {
+            throw new WebApplicationException("Invalid session cookie", 401);
+        }
+
+        // Debug: Log resolved user email
+        System.out.println("Resolved user email: " + userEmail);
+
+        // Use the repository method to fetch the requests
+        List<SpeakerInbox> requests = speakerInboxRepository.findBySpeakerEmail(userEmail);
+
+        // Debug: Log fetched requests
+        System.out.println("Fetched requests for user: " + requests);
+
+        return requests;
     }
 }
