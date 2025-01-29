@@ -45,18 +45,33 @@ public class EventService {
         // Validate that at least one topic is provided
         validateTopics(event);
 
+        // Create and initialize a new event object
+        Event newEvent = new Event();
+        newEvent.setDate(event.getDate());
+        newEvent.setPlace(event.getPlace());
+        newEvent.setTopics(new ArrayList<>(event.getTopics())); // Ensure list copy
+        newEvent.setTitle(event.getTitle());
+        newEvent.setStatus(event.getStatus());
+        newEvent.setMaxPartecipants(event.getMaxPartecipants());
+        newEvent.setRegisterdPartecipants(0);
+        newEvent.setSpeakers(new ArrayList<>());
+        newEvent.setHosts(new ArrayList<>()); // TODO: Implement hosts
+        newEvent.setPendingSpeakerRequests(
+                event.getPendingSpeakerRequests() != null ? new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
+        );
+
         // Persist the Event to generate an ID
-        eventRepository.addEvent(event);
-        if (event.getId() == null) {
+        eventRepository.addEvent(newEvent);
+        if (newEvent.getId() == null) {
             throw new IllegalStateException("Failed to persist event, as the ID is null.");
         }
 
         // Process pending speaker requests
-        processPendingSpeakerRequests(event.getPendingSpeakerRequests(), event.getId());
+        processPendingSpeakerRequests(newEvent.getPendingSpeakerRequests(), newEvent.getId());
 
         event.setPendingSpeakerRequests(null);
 
-        return event;
+        return newEvent;
     }
 
     public Event updateEvent(ObjectId id, Event updatedEvent, String speakerEmail) {

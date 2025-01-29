@@ -13,7 +13,7 @@ public class Event {
     private ObjectId id;
     private LocalDateTime date;
     private String place;
-    private List<User> speakers = new ArrayList<>(); // Initialize with an empty list
+    private List<User> speakers;
     private List<String> topics;
     private List<Host> hosts;
     private String title;
