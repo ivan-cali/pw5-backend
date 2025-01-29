@@ -10,9 +10,9 @@ import java.util.UUID;
 @MongoEntity(collection = "ticket")
 public class Ticket {
     private ObjectId id;
-    private User user;
+    private ObjectId userId;
+    private ObjectId eventId;
     private final String ticketCode;
-    private Event event;
     private TicketStatus status;
 
     // No-argument constructor
@@ -20,10 +20,10 @@ public class Ticket {
         this.ticketCode = UUID.randomUUID().toString(); // Generate UUID upon creation
     }
 
-    // Parameterized constructor
-    public Ticket(User user, Event event, TicketStatus status) {
-        this.user = user;
-        this.event = event;
+    // Updated parameterized constructor
+    public Ticket(ObjectId userId, ObjectId eventId, TicketStatus status) {
+        this.userId = userId;
+        this.eventId = eventId;
         this.ticketCode = UUID.randomUUID().toString();
         this.status = status;
     }
@@ -34,8 +34,6 @@ public class Ticket {
         return ticketCode;
     }
 
-    // Removed setter for ticketCode to prevent external modification
-
     public ObjectId getId() {
         return id;
     }
@@ -44,20 +42,20 @@ public class Ticket {
         this.id = id;
     }
 
-    public User getUser() {
-        return user;
+    public ObjectId getUserId() {
+        return userId;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setUserId(ObjectId userId) {
+        this.userId = userId;
     }
 
-    public Event getEvent() {
-        return event;
+    public ObjectId getEventId() {
+        return eventId;
     }
 
-    public void setEvent(Event event) {
-        this.event = event;
+    public void setEventId(ObjectId eventId) {
+        this.eventId = eventId;
     }
 
     public TicketStatus getStatus() {
@@ -75,14 +73,14 @@ public class Ticket {
 
         Ticket ticket = (Ticket) o;
         return Objects.equals(id, ticket.id) &&
-                Objects.equals(user, ticket.user) &&
-                Objects.equals(event, ticket.event) &&
+                Objects.equals(userId, ticket.userId) &&
+                Objects.equals(eventId, ticket.eventId) &&
                 Objects.equals(ticketCode, ticket.ticketCode) &&
                 status == ticket.status;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, user, event, ticketCode, status);
+        return Objects.hash(id, userId, eventId, ticketCode, status);
     }
 }

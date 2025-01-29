@@ -1,20 +1,17 @@
 package Its.incom.pw5.service;
 
-import Its.incom.pw5.persistence.model.Event;
-import Its.incom.pw5.persistence.model.SpeakerInbox;
-import Its.incom.pw5.persistence.model.Topic;
-import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
+import Its.incom.pw5.persistence.model.enums.TicketStatus;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
+import Its.incom.pw5.persistence.repository.TicketRepository;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
@@ -29,10 +26,12 @@ public class EventService {
     private final TopicService topicService;
     private final UserService userService;
     private final SpeakerInboxRepository speakerInboxRepository;
+    private final TicketRepository ticketRepository;
 
-    public EventService(EventRepository eventRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository) {
+    public EventService(EventRepository eventRepository,TicketRepository ticketRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository) {
         this.eventRepository = eventRepository;
         this.topicService = topicService;
+        this.ticketRepository = ticketRepository;
         this.userService = userService;
         this.speakerInboxRepository = speakerInboxRepository;
     }
@@ -278,8 +277,11 @@ public class EventService {
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity("Event not found.").build()));
 
-        // Check if the user has already booked the event
-        if (user.getUserDetails().getBookedEvents().contains(existingEvent)) {
+        // Check if the user has already booked the event (compare ObjectId)
+        boolean alreadyBooked = user.getUserDetails().getBookedEvents().stream()
+                .anyMatch(bookedEvent -> bookedEvent.getId().equals(existingEvent.getId()));
+
+        if (alreadyBooked) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("User has already booked this event.").build());
         }
@@ -301,10 +303,18 @@ public class EventService {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event is full.").build());
         }
+        // 1. Create a new ticket
+        Ticket newTicket = new Ticket(user.getId(), existingEvent.getId(), TicketStatus.PENDING);
 
-        // Add the user to the event
-        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
+        // 2. Persist the ticket to MongoDB
+        ticketRepository.addTicket(newTicket);
+
+        // 3. Add the ticket to the user's booked tickets list
+        user.getUserDetails().getBookedTickets().add(newTicket);
+
+        // 4. Update event's registered participants and user's booked events
         user.getUserDetails().getBookedEvents().add(existingEvent);
+        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
 
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
@@ -323,30 +333,35 @@ public class EventService {
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity("Event not found.").build()));
 
-        // Check if the user has already booked the event
-        if (!user.getUserDetails().getBookedEvents().contains(existingEvent)) {
-            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("User has not booked this event.").build());
-        }
 
         // Check if the event has already occurred
         if (existingEvent.getEndDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event has already occurred.").build());
         }
+        // Check if the event starts within the next two weeks
+        LocalDateTime twoWeeksFromNow = LocalDateTime.now().plusWeeks(2);
+        if (existingEvent.getStartDate().isBefore(twoWeeksFromNow)) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Cannot revoke booking within two weeks of event start.").build());
+        }
 
-        // Remove the user from the event
-        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() - 1);
+        // Remove the ticket from the database
+        Ticket ticketToRemove = ticketRepository.find("userId = ?1 and eventId = ?2", user.getId(), existingEvent.getId())
+                .firstResult();
+
+        if (ticketToRemove != null) {
+            ticketRepository.delete(ticketToRemove);
+        }
 
         // Remove the event from the user's booked events
-        List<Event> bookedEvents = user.getUserDetails().getBookedEvents();
-        for (Event e : bookedEvents) {
-            if (e.getId().equals(existingEvent.getId())) {
-                bookedEvents.remove(e);
-                break;
-            }
-        }
-        user.getUserDetails().setBookedEvents(bookedEvents);
+        user.getUserDetails().getBookedEvents().removeIf(bookedEvent -> bookedEvent.getId().equals(existingEvent.getId()));
+
+        // Remove the ticket from the user's booked tickets
+        user.getUserDetails().getBookedTickets().removeIf(ticket -> ticket.getEventId().equals(existingEvent.getId()));
+
+        // Decrement the registered participants count
+        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() - 1);
 
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
