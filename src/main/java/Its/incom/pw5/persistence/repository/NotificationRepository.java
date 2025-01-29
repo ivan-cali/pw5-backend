@@ -6,6 +6,8 @@ import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
+import java.util.List;
+
 @ApplicationScoped
 public class NotificationRepository implements PanacheMongoRepository<AdminNotification> {
 
@@ -19,5 +21,9 @@ public class NotificationRepository implements PanacheMongoRepository<AdminNotif
 
     public AdminNotification findNotificationById(ObjectId id) {
         return findById(id);
+    }
+
+    public List<AdminNotification> getAll(){
+        return findAll().list();
     }
 }

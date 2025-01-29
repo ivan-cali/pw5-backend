@@ -8,6 +8,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @ApplicationScoped
 public class NotificationService {
@@ -44,5 +45,9 @@ public class NotificationService {
         newNotification.setHandledBy(adminNotification.getHandledBy());
         newNotification.setStatus(NotificationStatus.HANDLED);
         notificationRepository.update(newNotification);
+    }
+
+    public List<AdminNotification> getAllNotifications(){
+        return notificationRepository.getAll();
     }
 }
