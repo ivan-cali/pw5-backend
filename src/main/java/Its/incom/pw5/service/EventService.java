@@ -160,16 +160,6 @@ public class EventService {
         if (existingEvent.getStartDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException("Event cannot be updated because it has already occurred.", 400);
         }
-
-        // Ensure the existing event is at least 2 weeks away
-        if (existingEvent.getStartDate().isBefore(LocalDateTime.now().plusWeeks(2))) {
-            throw new WebApplicationException("Event cannot be updated as it is less than 2 weeks away.", 400);
-        }
-
-        // Ensure the new date is at least 2 weeks away if being updated
-        if (updatedEvent.getStartDate() != null && updatedEvent.getStartDate().isBefore(LocalDateTime.now().plusWeeks(2))) {
-            throw new WebApplicationException("The new event date must be at least 2 weeks from today.", 400);
-        }
     }
 
     private void updateEditableFields(Event existingEvent, Event updatedEvent) {
