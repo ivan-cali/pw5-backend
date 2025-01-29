@@ -316,13 +316,13 @@ public class EventService {
         // 4. Add the ticket to the user's booked tickets list
         user.getUserDetails().getBookedTickets().add(newTicket);
 
-        // 5. Update event's registered participants and user's booked events
+        // 5. Update event's user's booked events
         user.getUserDetails().getBookedEvents().add(existingEvent);
-        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
 
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUserBookedEvents(user);
+        updateRegisteredParticipants();
     }
 
     public void checkAndRevokeEvent(Event event, User user) {
@@ -368,17 +368,37 @@ public class EventService {
         // Remove the ticket from the user's booked tickets
         user.getUserDetails().getBookedTickets().removeIf(ticket -> ticket.getEventId().equals(existingEvent.getId()));
 
-        // Decrement the registered participants count
-        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() - 1);
-
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUserBookedEvents(user);
+        updateRegisteredParticipants();
     }
 
     public Event getEventById(Event eventId) {
         return eventRepository.findByIdOptional(eventId.getId())
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity("Event not found.").build()));
+    }
+    @Scheduled(cron = "0 0 0 * * ?")  // Runs every day at midnight
+    public void updateRegisteredParticipants() {
+        System.out.println("Scheduled task 'updateRegisteredParticipants' started.");
+
+        // Fetch all events from the database
+        List<Event> allEvents = eventRepository.findAll().list();
+
+        for (Event event : allEvents) {
+            // Count the number of tickets associated with the event
+            long ticketCount = ticketRepository.count("eventId", event.getId());
+
+            // Update the registered participants field with the ticket count
+            event.setRegisterdPartecipants((int) ticketCount);
+
+            // Persist the updated event
+            eventRepository.updateEvent(event);
+
+            System.out.println("Updated event '" + event.getTitle() + "' with " + ticketCount + " registered participants.");
+        }
+
+        System.out.println("Scheduled task 'updateRegisteredParticipants' completed.");
     }
 }
