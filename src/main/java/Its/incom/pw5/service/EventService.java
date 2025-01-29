@@ -34,6 +34,9 @@ public class EventService {
     UserService userService;
 
     public Event createEvent(Event event) {
+        if (event.getDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Cannot create an event with a past date.");
+        }
         // Set default status to PENDING if not provided
         if (event.getStatus() == null) {
             event.setStatus(EventStatus.PENDING);
