@@ -4,25 +4,17 @@ import Its.incom.pw5.persistence.model.AdminNotification;
 import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
-import Its.incom.pw5.persistence.model.enums.HostStatus;
 import Its.incom.pw5.persistence.model.enums.NotificationStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.rest.model.SpeakerResponse;
-import Its.incom.pw5.service.SessionService;
-import Its.incom.pw5.service.UserService;
 import Its.incom.pw5.service.*;
-import Its.incom.pw5.service.exception.HostDeleteException;
-import Its.incom.pw5.service.exception.HostNotFoundException;
-import Its.incom.pw5.service.exception.HostUpdateException;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Path("/user")
