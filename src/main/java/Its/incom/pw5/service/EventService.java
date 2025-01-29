@@ -267,11 +267,7 @@ public class EventService {
         } else {
             System.out.println("No SpeakerInbox entries found for event ID: " + eventId);
         }
-    }
 
-        // Persist updated event
-        eventRepository.updateEvent(existingEvent);
-        return existingEvent;
     }
 
     public void checkAndBookEvent(Event event, User user) {
@@ -293,7 +289,7 @@ public class EventService {
         }
 
         // Check if the event has already occurred
-        if (existingEvent.getDate().isBefore(LocalDateTime.now())) {
+        if (existingEvent.getEndDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event has already occurred.").build());
         }
@@ -332,7 +328,7 @@ public class EventService {
         }
 
         // Check if the event has already occurred
-        if (existingEvent.getDate().isBefore(LocalDateTime.now())) {
+        if (existingEvent.getEndDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event has already occurred.").build());
         }

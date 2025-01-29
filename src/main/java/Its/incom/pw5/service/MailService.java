@@ -143,7 +143,7 @@ public class MailService {
 
     public void sendBookingConfirmationMail(String email, Event event) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy 'alle' HH:mm");
-        String formattedDate = event.getDate().format(formatter);
+        String formattedDate = event.getStartDate().format(formatter);
 
         Mail mail = Mail.withHtml(
                 email,
@@ -234,7 +234,7 @@ public class MailService {
 
     public void sendBookingRevocationMail(String email, Event event) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy 'alle' HH:mm");
-        String formattedDate = event.getDate().format(formatter);
+        String formattedDate = event.getStartDate().format(formatter);
 
         Mail mail = Mail.withHtml(
                 email,

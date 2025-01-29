@@ -121,13 +121,14 @@ public class Event {
 
     @Override
     public boolean equals(Object o) {
+        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Event event = (Event) o;
-        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(date, event.date) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(hosts, event.hosts) && Objects.equals(title, event.title) && status == event.status;
+        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(hosts, event.hosts) && Objects.equals(title, event.title) && status == event.status && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, date, place, speakers, topics, hosts, title, status, maxPartecipants, registerdPartecipants);
+        return Objects.hash(id, startDate, endDate, place, speakers, topics, hosts, title, status, pendingSpeakerRequests, maxPartecipants, registerdPartecipants);
     }
 }
