@@ -48,7 +48,7 @@ public class AuthResource {
     @Path("/login")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response login(User user) {
-        User validUser = userService.getUser(user);
+        User validUser = userService.getUserByEmail(user.getEmail());
 
         if (validUser == null) {
             // Authentication failed
@@ -157,7 +157,6 @@ public class AuthResource {
     }
 
     //create a new host
-
     @POST
     @Path("/register-host")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -188,5 +187,37 @@ public class AuthResource {
         } catch (NotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
         }
+    }
+
+    // login as host
+    @POST
+    @Path("/login-host")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response loginHost(Host host) {
+        Host validHost = hostService.getHostByEmail(host.getEmail());
+
+        if (validHost == null) {
+            // Authentication failed
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid credentials.")
+                    .build();
+        }
+        Session session = sessionService.createOrReuseSession(String.valueOf(validHost.getId()));
+        String sessionCookieValue = session.getCookieValue();
+
+        NewCookie sessionCookie = new NewCookie(
+                "SESSION_ID",           // Cookie name
+                sessionCookieValue,     // Cookie value
+                "/",                    // Path
+                null,                   // Domain (null uses request domain)
+                null,                   // Comment
+                (int) java.time.Duration.between(LocalDateTime.now(), session.getExpiresIn()).getSeconds(), // Max age in seconds
+                false                   // Secure flag (true if using HTTPS)
+        );
+
+        return Response
+                .ok("Host successfully logged in.")
+                .cookie(sessionCookie)
+                .build();
     }
 }

@@ -85,19 +85,6 @@ public class HostService {
         }
     }
 
-
-    //update host
-//    public Host update(ObjectId hostId, Map<String, Object> updates) throws HostUpdateException {
-//        try {
-//            //get host
-//            Host host = hostRepository.getById(hostId);
-//
-//            return hostRepository.update(host, updates);
-//        } catch (IllegalArgumentException e) {
-//            throw new HostUpdateException(e.getMessage());
-//        }
-//    }
-
     public void changeHostPsw(Host host, PasswordEditRequest passwordEditRequest) throws HostNotFoundException, HostUpdateException {
         try {
             String newPsw = passwordEditRequest.getNewPsw();
@@ -155,5 +142,10 @@ public class HostService {
 
     public Host getHostByUserCreatorEmail(String userCreatorEmail){
         return hostRepository.getByUserCreatorEmail(userCreatorEmail);
+    }
+
+    public Host getHostById(String userId) {
+        ObjectId hostId = new ObjectId(userId);
+        return hostRepository.getById(hostId);
     }
 }

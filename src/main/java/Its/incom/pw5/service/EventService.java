@@ -1,9 +1,6 @@
 package Its.incom.pw5.service;
 
-import Its.incom.pw5.persistence.model.Event;
-import Its.incom.pw5.persistence.model.SpeakerInbox;
-import Its.incom.pw5.persistence.model.Topic;
-import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
@@ -29,12 +26,14 @@ public class EventService {
     private final TopicService topicService;
     private final UserService userService;
     private final SpeakerInboxRepository speakerInboxRepository;
+    private final WaitingListService waitingListService;
 
-    public EventService(EventRepository eventRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository) {
+    public EventService(EventRepository eventRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository, WaitingListService waitingListService) {
         this.eventRepository = eventRepository;
         this.topicService = topicService;
         this.userService = userService;
         this.speakerInboxRepository = speakerInboxRepository;
+        this.waitingListService = waitingListService;
     }
 
     public Event createEvent(Event event) {
@@ -296,10 +295,19 @@ public class EventService {
                     .entity("Event has already occurred.").build());
         }
 
-        // Check if the event is full
+        // Check if the event is full. If the event is full, the user will be put on a waiting list.
         if (existingEvent.getMaxPartecipants() > 0 && existingEvent.getRegisterdPartecipants() >= existingEvent.getMaxPartecipants()) {
+            // Check if the waiting list already exists
+            waitingListService.checkAndCreateWaitingList(existingEvent);
+
+            // Get the waiting list
+            WaitingList waitingList = waitingListService.getWaitingListByEventId(existingEvent.getId());
+
+            // Add the user to the waiting list
+            waitingListService.addUserToWaitingList(waitingList, user);
+
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event is full.").build());
+                    .entity("Event is full. User has been added to the waiting list.").build());
         }
 
         // Add the user to the event

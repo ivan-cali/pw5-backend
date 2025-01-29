@@ -18,11 +18,7 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public User getUser(User user) {
-        return userRepository.getUserByEmail(user.getEmail());
-    }
-
-    public void convertStringToObjectId(String id) {
+    public void deleteUser(String id) {
         if (id == null) {
             throw new IllegalArgumentException("Id cannot be null");
         }

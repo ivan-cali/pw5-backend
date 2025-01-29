@@ -1,13 +1,11 @@
 package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.Event;
+import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
-import Its.incom.pw5.service.EventService;
-import Its.incom.pw5.service.MailService;
-import Its.incom.pw5.service.SessionService;
-import Its.incom.pw5.service.UserService;
+import Its.incom.pw5.service.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -23,16 +21,46 @@ public class EventResource {
     private final SessionService sessionService;
     private final UserService userService;
     private final MailService mailService;
+    private final HostService hostService;
 
-    public EventResource(EventService eventService, SessionService sessionService, UserService userService, MailService mailService) {
+    public EventResource(EventService eventService, SessionService sessionService, UserService userService, MailService mailService, HostService hostService) {
         this.eventService = eventService;
         this.sessionService = sessionService;
         this.userService = userService;
         this.mailService = mailService;
+        this.hostService = hostService;
     }
 
     @POST
-    public Response createEvent(Event event) {
+    public Response createEvent(Event event, @CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session ID is required.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session ID.").build();
+        }
+
+        Host host = hostService.getHostById(session.getUserId()); // In this case, the session userId is the hostId
+        if (host == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Host not found.").build();
+        }
+
+        User hostUser = userService.getUserByEmail(host.getCreatedBy());
+        if (hostUser == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Host user not found.").build();
+        }
+
+        if (UserStatus.VERIFIED != hostUser.getStatus()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Host user is not verified.").build();
+        }
+
         if (event == null) {
             // Return a bad request if no event data was provided
             return Response.status(Response.Status.BAD_REQUEST)
