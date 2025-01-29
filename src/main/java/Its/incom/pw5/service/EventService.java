@@ -428,6 +428,15 @@ public class EventService {
             // Count only tickets with a userId assigned for the event
             long ticketCount = ticketRepository.count("{ eventId: ?1, userId: { $ne: null } }", event.getId());
 
+            // Determine the number of registered participants
+            int registeredParticipants;
+            if (event.getMaxPartecipants() > 0) {
+                registeredParticipants = (int) Math.min(ticketCount, event.getMaxPartecipants());
+            } else {
+                // If no max participants limit, use the actual ticket count
+                registeredParticipants = (int) ticketCount;
+            }
+
             // Update the registered participants field with the ticket count
             event.setRegisterdPartecipants((int) ticketCount);
 
