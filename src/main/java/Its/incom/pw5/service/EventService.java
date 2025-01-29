@@ -9,7 +9,11 @@ import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
+import io.quarkus.runtime.StartupEvent;
+import io.quarkus.scheduler.Scheduled;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import org.bson.types.ObjectId;
@@ -216,4 +220,53 @@ public class EventService {
         // Log successful request
         System.out.println("Speaker request created for: " + fullSpeaker.getEmail());
     }
+    public void onStartup(@Observes StartupEvent event) {
+        System.out.println("Application started, running archivePastEvents now...");
+        archivePastEvents();
+    }
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void archivePastEvents() {
+        System.out.println("Scheduled task 'archivePastEvents' started at: " + LocalDateTime.now());
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // Find all CONFIRMED events where the end date has already passed
+        List<Event> eventsToArchive = eventRepository.find(
+                "status = ?1 and endDate < ?2", EventStatus.CONFIRMED, now
+        ).list();
+
+        if (!eventsToArchive.isEmpty()) {
+            for (Event event : eventsToArchive) {
+                // Archive the event
+                event.setStatus(EventStatus.ARCHIVED);
+                eventRepository.updateEvent(event);
+                System.out.println("Archived event: " + event.getTitle());
+
+                // Remove all related SpeakerInbox entries
+                removeRelatedSpeakerInboxes(event.getId());
+            }
+        } else {
+            System.out.println("No events to archive at this time.");
+        }
+
+        System.out.println("Scheduled task 'archivePastEvents' completed at: " + LocalDateTime.now());
+    }
+
+
+    private void removeRelatedSpeakerInboxes(ObjectId eventId) {
+        // Fetch all related SpeakerInbox entries for the event
+        List<SpeakerInbox> relatedInboxes = speakerInboxRepository.find(
+                "eventId", eventId
+        ).list();
+
+        if (!relatedInboxes.isEmpty()) {
+            for (SpeakerInbox inbox : relatedInboxes) {
+                speakerInboxRepository.delete(inbox);
+                System.out.println("Deleted SpeakerInbox entry for speaker: " + inbox.getSpeakerEmail());
+            }
+        } else {
+            System.out.println("No SpeakerInbox entries found for event ID: " + eventId);
+        }
+    }
+
 }
