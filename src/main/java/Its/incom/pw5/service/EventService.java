@@ -96,7 +96,8 @@ public class EventService {
                 if (speakerRequest.getEmail() != null) {
                     User speaker = userService.getUserByEmail(speakerRequest.getEmail());
                     if (speaker == null) {
-                        throw new WebApplicationException("User not found", 404);
+                        throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                                .entity("User " + speakerRequest.getEmail() + " does not exist.").build());
                     }
                     addSpeakerToEvent(speaker, existingEvent.getId());
                     newPendingRequests.add(speakerRequest);
@@ -110,7 +111,8 @@ public class EventService {
         if (speakerEmail != null && !speakerEmail.isBlank()) {
             User speaker = userService.getUserByEmail(speakerEmail);
             if (speaker == null) {
-                throw new WebApplicationException("User " + speakerEmail + " does not exist.", 404);
+                throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity("User " + speakerEmail + " does not exist.").build());
             }
             addSpeakerToEvent(speaker, existingEvent.getId());
         }
@@ -128,7 +130,7 @@ public class EventService {
                 } catch (WebApplicationException e) {
                     // Log the error and propagate it to the client
                     System.err.println("Error processing speaker request for email: "
-                            + speakerRequest.getEmail() + ". Error: " + e.getMessage());
+                                       + speakerRequest.getEmail() + ". Error: " + e.getMessage());
                     throw e;
                 }
             }
@@ -137,7 +139,8 @@ public class EventService {
 
     private Event getExistingEvent(ObjectId id) {
         return eventRepository.findByIdOptional(id)
-                .orElseThrow(() -> new WebApplicationException("Event not found", 404));
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity("Event not found.").build()));
     }
 
     private void validateTopics(Event event) {
@@ -158,7 +161,8 @@ public class EventService {
     private void validateEventDates(Event existingEvent, Event updatedEvent) {
         // Check if the event has already occurred
         if (existingEvent.getStartDate().isBefore(LocalDateTime.now())) {
-            throw new WebApplicationException("Event cannot be updated because it has already occurred.", 400);
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Event has already occurred.").build());
         }
     }
 
@@ -181,12 +185,14 @@ public class EventService {
         // Fetch the full user object from the database
         User fullSpeaker = userService.getUserByEmail(speaker.getEmail());
         if (fullSpeaker == null) {
-            throw new WebApplicationException("User " + speaker.getEmail() + " does not exist.", 404);
+            throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                    .entity("User " + speaker.getEmail() + " does not exist.").build());
         }
 
         // Validate speaker role
         if (fullSpeaker.getRole() == null || !fullSpeaker.getRole().equals(Role.SPEAKER)) {
-            throw new WebApplicationException("User " + fullSpeaker.getEmail() + " is not a SPEAKER.", 400);
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("User " + fullSpeaker.getEmail() + " is not a speaker.").build());
         }
 
         // Check for duplicates in the SpeakerInbox
@@ -196,8 +202,8 @@ public class EventService {
         ).firstResultOptional().isPresent();
 
         if (duplicateRequest) {
-            throw new WebApplicationException(
-                    "Duplicate speaker request detected for email: " + fullSpeaker.getEmail(), 400);
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Speaker request already exists for: " + fullSpeaker.getEmail()).build());
         }
 
         // Create a new SpeakerInbox entry with PENDING status
@@ -276,6 +282,12 @@ public class EventService {
         if (user.getUserDetails().getBookedEvents().contains(existingEvent)) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("User has already booked this event.").build());
+        }
+
+        // Check if the event is CONFIRMED or ARCHIVED
+        if (existingEvent.getStatus() != EventStatus.CONFIRMED) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Event is not confirmed.").build());
         }
 
         // Check if the event has already occurred
