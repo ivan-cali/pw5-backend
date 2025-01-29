@@ -5,11 +5,11 @@ import org.bson.types.ObjectId;
 
 import java.util.List;
 
-@MongoEntity(collection = "pendingList")
-public class PendingList {
+@MongoEntity(collection = "waitingList")
+public class WaitingList {
     private ObjectId id;
     private ObjectId eventId;
-    private List<String> pendingUsers;
+    private List<String> WaitingUsers;
 
     public ObjectId getId() {
         return id;
@@ -27,11 +27,11 @@ public class PendingList {
         this.eventId = eventId;
     }
 
-    public List<String> getPendingUsers() {
-        return pendingUsers;
+    public List<String> getWaitingUsers() {
+        return WaitingUsers;
     }
 
-    public void setPendingUsers(List<String> pendingUsers) {
-        this.pendingUsers = pendingUsers;
+    public void setWaitingUsers(List<String> waitingUsers) {
+        this.WaitingUsers = waitingUsers;
     }
 }
