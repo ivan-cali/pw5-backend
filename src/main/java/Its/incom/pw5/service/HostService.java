@@ -1,23 +1,33 @@
 package Its.incom.pw5.service;
 
 import Its.incom.pw5.persistence.model.Host;
-import Its.incom.pw5.persistence.model.enums.Type;
+import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.enums.HostStatus;
 import Its.incom.pw5.persistence.repository.HostRepository;
+import Its.incom.pw5.rest.model.PasswordEditRequest;
 import Its.incom.pw5.service.exception.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
+import jakarta.ws.rs.NotFoundException;
 import org.bson.types.ObjectId;
+
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 @ApplicationScoped
 public class HostService {
     @Inject
     HostRepository hostRepository;
+    @Inject
+    HashCalculator hashCalculator;
+
+    @Inject
+    UserService userService;
+
 
     //get all hosts
-    public List<Host> getAll() throws HostNotFoundException{
+    public List<Host> getAll() throws HostNotFoundException {
         try {
             return hostRepository.getAll();
         } catch (PersistenceException e) {
@@ -26,69 +36,124 @@ public class HostService {
     }
 
     //create host
-    public Host create(Type hostType, String hostName, String hostEmail, String generatedPsw, String hostDescription) throws HostAlreadyExistsException, HostCreationException {
+    public void create(String userId, Host host) throws HostAlreadyExistsException, HostCreationException {
         try {
-        //filling out the form
-        if(!(hostType instanceof Type) || hostName == null || hostEmail == null || hostDescription == null){
-            throw new IllegalArgumentException("From cannot have empty fields");
-        }
+            User user = userService.getUserById(userId);
+            if (user.getEmail() == null) {
+                throw new NotFoundException("User email not found");
+            }
 
-        //check if host already exists
-        if (hostRepository.hostNameExists(hostEmail)){
-            throw new HostAlreadyExistsException("Host with email + " + hostEmail + " already exists");
-        }
+            Host newHost = new Host();
+            newHost.setName(host.getName());
+            newHost.setEmail(host.getEmail());
+            newHost.setType(host.getType());
+            newHost.setCreatedBy(user.getEmail());
+            newHost.setHostStatus(HostStatus.PENDING);
 
-            return hostRepository.create(hostType, hostName, hostEmail, generatedPsw, hostDescription);
+            if (host.getType() == null || host.getType().toString().isEmpty() || host.getName() == null || host.getName().isEmpty() || host.getEmail() == null|| host.getEmail().isEmpty()) {
+                throw new IllegalArgumentException("Form cannot have empty fields");
+            }
+
+            //check if host email already exists
+            if (hostRepository.hostEmailExists(newHost.getEmail())) {
+                throw new HostAlreadyExistsException("Host with email " + newHost.getEmail() + " already exists");
+            }
+
+            //check if host name already exists
+            if (hostRepository.hostNameExists(newHost.getName())){
+                throw new HostAlreadyExistsException("Host with name " + newHost.getName() + " already exists");
+            }
+
+            hostRepository.create(newHost);
         } catch (PersistenceException e) {
             throw new HostCreationException(e.getMessage());
         }
     }
 
 
-
     //delete host
-   /* public void delete(ObjectId sessionId,  ObjectId hostId) throws HostNotFoundException, HostDeleteException {
+    public void delete(Host host) throws HostNotFoundException, HostDeleteException {
         try {
-            //find if user exists, if he is verified and if he is logged in
-            ObjectId userId;
-            if (userId == null) {
-                throw new SessionNotFoundException();
-            }
-
-            //check if user is admin
-            if (!isAdmin(userId)){
-                throw new UserNotAdminException();
-            }
-
             //check if host exists
-            Host host = hostRepository.getById(hostId);
-            if (host == null){
+            hostRepository.getById(host.getId());
+            if (host == null) {
                 throw new HostNotFoundException("Host not found");
             }
-                hostRepository.delete(host);
-        } catch (PersistenceException e){
+            hostRepository.delete(host);
+        } catch (PersistenceException e) {
             throw new HostDeleteException(e.getMessage());
         }
     }
-    */
 
 
     //update host
-    public Host update(String sessionId, ObjectId hostId, Map<String, Object> updates) throws HostUpdateException{
+//    public Host update(ObjectId hostId, Map<String, Object> updates) throws HostUpdateException {
+//        try {
+//            //get host
+//            Host host = hostRepository.getById(hostId);
+//
+//            return hostRepository.update(host, updates);
+//        } catch (IllegalArgumentException e) {
+//            throw new HostUpdateException(e.getMessage());
+//        }
+//    }
+
+    public void changeHostPsw(Host host, PasswordEditRequest passwordEditRequest) throws HostNotFoundException, HostUpdateException {
         try {
-            /*
-            //find if user exists, if he is verified and if he is logged in
-            ObjectId hostId;
-            if (hostId == null) {
-                throw new SessionNotFoundException();
-            }*/
+            String newPsw = passwordEditRequest.getNewPsw();
+            String oldPsw = passwordEditRequest.getOldPsw();
 
-            //get host
-            Host host = hostRepository.getById(hostId);
+            //check string newPsw
+            if (newPsw == null || newPsw.isEmpty()) {
+                throw new IllegalArgumentException("New password not provided");
+            }
 
-            return hostRepository.update(host, updates);
-        } catch (IllegalArgumentException e){
+            //check string oldPsw
+            if (oldPsw == null || oldPsw.isEmpty()) {
+                throw new IllegalArgumentException("Old password not provided");
+            }
+
+            //password hashing
+            String newHashedPsw = hashCalculator.calculateHash(newPsw);
+            String oldHashedPsw = hashCalculator.calculateHash(oldPsw);
+
+            if (!Objects.equals(oldHashedPsw, host.getHashedPsw())) {
+                throw new IllegalArgumentException("Wrong temporary password");
+            }
+
+            if (Objects.equals(newHashedPsw, host.getHashedPsw())) {
+                throw new IllegalArgumentException("Passwords can't be the same");
+            }
+
+            //update the old generated password with the new password
+            host.setHashedPsw(newHashedPsw);
+            hostRepository.updateHost(host);
+        } catch (PersistenceException e) {
             throw new HostUpdateException(e.getMessage());
         }
+    }
+
+    public Host findHostRequst(ObjectId id) {
+        return hostRepository.findById(id);
+    }
+
+    public void update(Host newHost, String generatedPsw) {
+        newHost.setHostStatus(HostStatus.APPROVED);
+        String hashedPsw = hashCalculator.calculateHash(generatedPsw);
+        newHost.setHashedPsw(hashedPsw);
+        hostRepository.updateHost(newHost);
+    }
+
+    public void rejectHostRequest(Host rejectedHost){
+        rejectedHost.setHostStatus(HostStatus.REJECTED);
+        hostRepository.updateHost(rejectedHost);
+    }
+
+    public Host getHostByEmail(String hostEmail) {
+        return hostRepository.findByEmail(hostEmail);
+    }
+
+    public Host getHostByUserCreatorEmail(String userCreatorEmail){
+        return hostRepository.getByUserCreatorEmail(userCreatorEmail);
     }
 }

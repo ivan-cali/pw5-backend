@@ -1,5 +1,6 @@
 package Its.incom.pw5.persistence.model;
 
+import Its.incom.pw5.persistence.model.enums.HostStatus;
 import Its.incom.pw5.persistence.model.enums.Type;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.types.ObjectId;
@@ -16,6 +17,16 @@ public class Host {
     private List<Event> pastEvents;
     private List<Event> programmedEvents;
     private String createdBy;
+
+    private HostStatus hostStatus;
+
+    public HostStatus getHostStatus() {
+        return hostStatus;
+    }
+
+    public void setHostStatus(HostStatus hostStatus) {
+        this.hostStatus = hostStatus;
+    }
 
     public String getEmail() {
         return email;

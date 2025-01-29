@@ -4,10 +4,12 @@ import Its.incom.pw5.persistence.model.AdminNotification;
 import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.enums.NotificationStatus;
 import Its.incom.pw5.persistence.repository.NotificationRepository;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 
+@ApplicationScoped
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -27,19 +29,20 @@ public class NotificationService {
         notification.setHostId(host.getId());
         notification.setTimestamp(LocalDateTime.now());
         notification.setMessage("Richisesta di creazione di un nuovo host");
+        notification.setHandledBy(host.getCreatedBy());
 
         notificationRepository.create(notification);
     }
 
     public AdminNotification getById(ObjectId id){
-        return notificationRepository.findById(id);
+        return notificationRepository.findNotificationById(id);
     }
 
-    public void update(ObjectId id, NotificationStatus status, String adminEmail){
-        AdminNotification notification = notificationRepository.findById(id);
+    public void update(AdminNotification adminNotification){
+        AdminNotification newNotification = notificationRepository.findById(adminNotification.getId());
 
-        notification.setHandledBy(adminEmail);
-        notification.setStatus(status);
-        notificationRepository.update(notification);
+        newNotification.setHandledBy(adminNotification.getHandledBy());
+        newNotification.setStatus(NotificationStatus.HANDLED);
+        notificationRepository.update(newNotification);
     }
 }
