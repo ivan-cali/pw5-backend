@@ -12,6 +12,8 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import org.bson.types.ObjectId;
 
+import java.util.List;
+
 @ApplicationScoped
 public class SpeakerInboxService {
 
@@ -91,4 +93,15 @@ public class SpeakerInboxService {
         return inbox;
     }
 
+    public List<SpeakerInbox> getRequestsForUser(String sessionCookie) {
+        // Retrieve the user's email from the session cookie
+        String userEmail = sessionService.findEmailBySessionCookie(sessionCookie);
+
+        if (userEmail == null || userEmail.isBlank()) {
+            throw new IllegalArgumentException("Invalid session or user email not found.");
+        }
+
+        // Fetch and return the SpeakerInbox requests for this email
+        return speakerInboxRepository.findBySpeakerEmail(userEmail);
+    }
 }
