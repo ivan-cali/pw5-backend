@@ -50,4 +50,8 @@ public class NotificationService {
     public List<AdminNotification> getAllNotifications(){
         return notificationRepository.getAll();
     }
+
+    public List<AdminNotification> getFilteredNotificationByStatus(NotificationStatus status){
+        return notificationRepository.getFilteredNotificationsByStatus(status);
+    }
 }

@@ -144,6 +144,28 @@ public class UserResource {
     }
 
     //all notification filtered by status
+    @GET
+    @Path("/notification")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response getUnreadNotifications(@CookieParam("SESSION_ID") String sessionId, @QueryParam("status") NotificationStatus status){
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (Role.ADMIN != user.getRole()) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build();
+        }
+
+        List<AdminNotification> notifications = notificationService.getFilteredNotificationByStatus(status);
+        return Response.ok().entity(notifications).build();
+    }
 
 
 

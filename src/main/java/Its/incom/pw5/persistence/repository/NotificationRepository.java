@@ -26,4 +26,8 @@ public class NotificationRepository implements PanacheMongoRepository<AdminNotif
     public List<AdminNotification> getAll(){
         return findAll().list();
     }
+
+    public List<AdminNotification> getFilteredNotificationsByStatus(NotificationStatus status){
+        return find("status", status).list();
+    }
 }
