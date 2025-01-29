@@ -5,13 +5,13 @@ import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @MongoEntity(collection = "event")
 public class Event {
     private ObjectId id;
-    private LocalDateTime date;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
     private String place;
     private List<User> speakers;
     private List<String> topics;
@@ -30,6 +30,14 @@ public class Event {
         this.pendingSpeakerRequests = pendingSpeakerRequests;
     }
 
+    public LocalDateTime getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDateTime endDate) {
+        this.endDate = endDate;
+    }
+
     public ObjectId getId() {
         return id;
     }
@@ -38,12 +46,12 @@ public class Event {
         this.id = id;
     }
 
-    public LocalDateTime getDate() {
-        return date;
+    public LocalDateTime getStartDate() {
+        return startDate;
     }
 
-    public void setDate(LocalDateTime date) {
-        this.date = date;
+    public void setStartDate(LocalDateTime startDate) {
+        this.startDate = startDate;
     }
 
     public String getPlace() {

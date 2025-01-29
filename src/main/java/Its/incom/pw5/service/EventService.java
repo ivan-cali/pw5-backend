@@ -34,7 +34,7 @@ public class EventService {
     UserService userService;
 
     public Event createEvent(Event event) {
-        if (event.getDate().isBefore(LocalDateTime.now())) {
+        if (event.getStartDate().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Cannot create an event with a past date.");
         }
         // Set default status to PENDING if not provided
@@ -47,7 +47,8 @@ public class EventService {
 
         // Create and initialize a new event object
         Event newEvent = new Event();
-        newEvent.setDate(event.getDate());
+        newEvent.setStartDate(event.getStartDate());
+        newEvent.setEndDate(event.getEndDate());
         newEvent.setPlace(event.getPlace());
         newEvent.setTopics(new ArrayList<>(event.getTopics())); // Ensure list copy
         newEvent.setTitle(event.getTitle());
@@ -152,17 +153,17 @@ public class EventService {
 
     private void validateEventDates(Event existingEvent, Event updatedEvent) {
         // Check if the event has already occurred
-        if (existingEvent.getDate().isBefore(LocalDateTime.now())) {
+        if (existingEvent.getStartDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException("Event cannot be updated because it has already occurred.", 400);
         }
 
         // Ensure the existing event is at least 2 weeks away
-        if (existingEvent.getDate().isBefore(LocalDateTime.now().plusWeeks(2))) {
+        if (existingEvent.getStartDate().isBefore(LocalDateTime.now().plusWeeks(2))) {
             throw new WebApplicationException("Event cannot be updated as it is less than 2 weeks away.", 400);
         }
 
         // Ensure the new date is at least 2 weeks away if being updated
-        if (updatedEvent.getDate() != null && updatedEvent.getDate().isBefore(LocalDateTime.now().plusWeeks(2))) {
+        if (updatedEvent.getStartDate() != null && updatedEvent.getStartDate().isBefore(LocalDateTime.now().plusWeeks(2))) {
             throw new WebApplicationException("The new event date must be at least 2 weeks from today.", 400);
         }
     }
@@ -174,8 +175,8 @@ public class EventService {
         if (updatedEvent.getTopics() != null) {
             existingEvent.setTopics(updatedEvent.getTopics());
         }
-        if (updatedEvent.getDate() != null) {
-            existingEvent.setDate(updatedEvent.getDate());
+        if (updatedEvent.getStartDate() != null) {
+            existingEvent.setStartDate(updatedEvent.getStartDate());
         }
         if (updatedEvent.getMaxPartecipants() > 0) {
             existingEvent.setMaxPartecipants(updatedEvent.getMaxPartecipants());
