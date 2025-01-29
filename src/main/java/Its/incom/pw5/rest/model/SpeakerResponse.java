@@ -1,9 +1,10 @@
 package Its.incom.pw5.rest.model;
 
+import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.Role;
 import org.bson.types.ObjectId;
 
-public class SpeakerResponse {
+public class SpeakerResponse extends User {
     private ObjectId id;
     private String firstName;
 

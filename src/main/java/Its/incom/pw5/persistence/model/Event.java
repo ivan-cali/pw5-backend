@@ -11,15 +11,33 @@ import java.util.Objects;
 @MongoEntity(collection = "event")
 public class Event {
     private ObjectId id;
-    private LocalDateTime date;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
     private String place;
     private List<User> speakers;
     private List<String> topics;
     private List<Host> hosts;
     private String title;
     private EventStatus status;
+    private List<User> pendingSpeakerRequests;
     private int maxPartecipants;
     private int registerdPartecipants;
+
+    public List<User> getPendingSpeakerRequests() {
+        return pendingSpeakerRequests;
+    }
+
+    public void setPendingSpeakerRequests(List<User> pendingSpeakerRequests) {
+        this.pendingSpeakerRequests = pendingSpeakerRequests;
+    }
+
+    public LocalDateTime getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDateTime endDate) {
+        this.endDate = endDate;
+    }
 
     public ObjectId getId() {
         return id;
@@ -29,12 +47,12 @@ public class Event {
         this.id = id;
     }
 
-    public LocalDateTime getDate() {
-        return date;
+    public LocalDateTime getStartDate() {
+        return startDate;
     }
 
-    public void setDate(LocalDateTime date) {
-        this.date = date;
+    public void setStartDate(LocalDateTime startDate) {
+        this.startDate = startDate;
     }
 
     public String getPlace() {
