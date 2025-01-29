@@ -71,12 +71,27 @@ public class EventService {
             throw new IllegalStateException("Failed to persist event, as the ID is null.");
         }
 
+        // Pre-create tickets if the event has a maximum number of participants
+        if (newEvent.getMaxPartecipants() > 0) {
+            createUnassignedTickets(newEvent);
+        }
+
         // Process pending speaker requests
         processPendingSpeakerRequests(newEvent.getPendingSpeakerRequests(), newEvent.getId());
 
         event.setPendingSpeakerRequests(null);
 
         return newEvent;
+    }
+    private void createUnassignedTickets(Event event) {
+        List<ObjectId> ticketIds = new ArrayList<>();
+        for (int i = 0; i < event.getMaxPartecipants(); i++) {
+            Ticket ticket = new Ticket(null, event.getId(), TicketStatus.PENDING);
+            ticketRepository.addTicket(ticket);
+            ticketIds.add(ticket.getId());
+        }
+        event.setTicketIds(ticketIds);
+        eventRepository.updateEvent(event);
     }
 
     public Event updateEvent(ObjectId id, Event updatedEvent, String speakerEmail) {
@@ -304,17 +319,34 @@ public class EventService {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event is full.").build());
         }
-        // 1. Create a new ticket
-        Ticket newTicket = new Ticket(user.getId(), existingEvent.getId(), TicketStatus.PENDING);
+        // If the event has a limited number of participants, assign an unassigned ticket
+            Ticket assignedTicket;
 
-        // 2. Persist the ticket to MongoDB
-        ticketRepository.addTicket(newTicket);
+            if (existingEvent.getMaxPartecipants() > 0) {
+                // Find an existing unassigned ticket for the event
+                assignedTicket = ticketRepository.find("eventId = ?1 and status = ?2", existingEvent.getId(), TicketStatus.PENDING)
+                        .firstResult();
+
+                if (assignedTicket == null) {
+                    throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                            .entity("No available tickets for this event.").build());
+                }
+
+                // Assign the ticket to the user
+                assignedTicket.setUserId(user.getId());
+                assignedTicket.setStatus(TicketStatus.PENDING);
+                ticketRepository.updateTicket(assignedTicket);
+            } else {
+                // If no max participants, create a new ticket for the user
+                assignedTicket = new Ticket(user.getId(), existingEvent.getId(), TicketStatus.PENDING);
+                ticketRepository.addTicket(assignedTicket);
+            }
 
         // 3. Add the ticket's ObjectId to the event's ticketIds list
-        existingEvent.getTicketIds().add(newTicket.getId());
+        existingEvent.getTicketIds().add(assignedTicket.getId());
 
         // 4. Add the ticket to the user's booked tickets list
-        user.getUserDetails().getBookedTickets().add(newTicket);
+        user.getUserDetails().getBookedTickets().add(assignedTicket);
 
         // 5. Update event's user's booked events
         user.getUserDetails().getBookedEvents().add(existingEvent);
@@ -337,12 +369,12 @@ public class EventService {
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity("Event not found.").build()));
 
-
         // Check if the event has already occurred
         if (existingEvent.getEndDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event has already occurred.").build());
         }
+
         // Check if the event starts within the next two weeks
         LocalDateTime twoWeeksFromNow = LocalDateTime.now().plusWeeks(2);
         if (existingEvent.getStartDate().isBefore(twoWeeksFromNow)) {
@@ -350,29 +382,35 @@ public class EventService {
                     .entity("Cannot revoke booking within two weeks of event start.").build());
         }
 
-        // Remove the ticket from the database
-        Ticket ticketToRemove = ticketRepository.find("userId = ?1 and eventId = ?2", user.getId(), existingEvent.getId())
+        // Find the user's ticket for this event
+        Ticket ticketToUpdate = ticketRepository.find("userId = ?1 and eventId = ?2", user.getId(), existingEvent.getId())
                 .firstResult();
 
-        if (ticketToRemove != null) {
-            // Remove the ticket from the event's ticketIds list
-            existingEvent.getTicketIds().remove(ticketToRemove.getId());
+        if (ticketToUpdate != null) {
+            // Nullify the user ID to revoke the ticket's assignment
+            ticketRepository.nullifyUserId(ticketToUpdate);
 
-            // Delete the ticket from the database
-            ticketRepository.delete(ticketToRemove);
+            // Remove the ticket ID from the event's ticketIds list
+            existingEvent.getTicketIds().remove(ticketToUpdate.getId());
+
+            // Remove the ticket from the user's booked tickets list
+            user.getUserDetails().getBookedTickets().removeIf(ticket -> ticket.getId().equals(ticketToUpdate.getId()));
         }
 
         // Remove the event from the user's booked events
         user.getUserDetails().getBookedEvents().removeIf(bookedEvent -> bookedEvent.getId().equals(existingEvent.getId()));
 
         // Remove the ticket from the user's booked tickets
-        user.getUserDetails().getBookedTickets().removeIf(ticket -> ticket.getEventId().equals(existingEvent.getId()));
+        user.getUserDetails().getBookedTickets().removeIf(ticket ->
+                ticket.getId().equals(ticketToUpdate.getId())
+        );
 
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUserBookedEvents(user);
         updateRegisteredParticipants();
     }
+
 
     public Event getEventById(Event eventId) {
         return eventRepository.findByIdOptional(eventId.getId())
@@ -387,8 +425,8 @@ public class EventService {
         List<Event> allEvents = eventRepository.findAll().list();
 
         for (Event event : allEvents) {
-            // Count the number of tickets associated with the event
-            long ticketCount = ticketRepository.count("eventId", event.getId());
+            // Count only tickets with a userId assigned for the event
+            long ticketCount = ticketRepository.count("{ eventId: ?1, userId: { $ne: null } }", event.getId());
 
             // Update the registered participants field with the ticket count
             event.setRegisterdPartecipants((int) ticketCount);
