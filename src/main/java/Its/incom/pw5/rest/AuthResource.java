@@ -1,19 +1,19 @@
 package Its.incom.pw5.rest;
 
-import Its.incom.pw5.persistence.model.Session;
-import Its.incom.pw5.persistence.model.User;
-import Its.incom.pw5.persistence.model.VerificationToken;
+import Its.incom.pw5.persistence.model.*;
+import Its.incom.pw5.persistence.model.enums.Type;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
-import Its.incom.pw5.service.AuthService;
-import Its.incom.pw5.service.MailService;
-import Its.incom.pw5.service.SessionService;
-import Its.incom.pw5.service.UserService;
+import Its.incom.pw5.service.*;
+import Its.incom.pw5.service.exception.HostAlreadyExistsException;
+import Its.incom.pw5.service.exception.HostCreationException;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 
+import javax.management.Notification;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Path("/auth")
@@ -22,12 +22,16 @@ public class AuthResource {
     private final SessionService sessionService;
     private final UserService userService;
     private final MailService mailService;
+    private final HostService hostService;
+    private final NotificationService notificationService;
 
-    public AuthResource(AuthService authService, SessionService sessionService, UserService userService, MailService mailService) {
+    public AuthResource(AuthService authService, SessionService sessionService, UserService userService, MailService mailService, HostService hostService, NotificationService notificationService) {
         this.authService = authService;
         this.sessionService = sessionService;
         this.userService = userService;
         this.mailService = mailService;
+        this.hostService = hostService;
+        this.notificationService = notificationService;
     }
 
     @POST
@@ -149,6 +153,40 @@ public class AuthResource {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Session not found or already invalidated.")
                     .build();
+        }
+    }
+
+    //create a new host
+
+    @POST
+    @Path("/register-host")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response create(@CookieParam("SESSION_ID") String sessionId, Host host) {
+        try {
+            if (sessionId == null) {
+                return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            }
+
+            Session session = sessionService.getSession(sessionId);
+            if (session == null) {
+                return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            }
+
+            hostService.create(session.getUserId(), host);
+
+            //notification of the new host creation request
+            Host newHost = hostService.getHostByEmail(host.getEmail());
+            AdminNotification notification = new AdminNotification();
+            notificationService.create(newHost, notification);
+
+            return Response.status(Response.Status.CREATED).entity("Host successfully registered.").build();
+        } catch (HostAlreadyExistsException e) {
+            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+        } catch (HostCreationException e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        } catch (NotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
         }
     }
 }

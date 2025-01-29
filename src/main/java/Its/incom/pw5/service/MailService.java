@@ -25,7 +25,7 @@ public class MailService {
     }
 
 
-    public String generateToken(String email) {
+    private String generateToken(String email) {
         VerificationToken verificationToken = new VerificationToken();
 
         String token = UUID.randomUUID().toString();
@@ -51,81 +51,81 @@ public class MailService {
                 email,
                 "Developer Varese Group - Conferma mail",
                 "<html lang=\"en\">\n" +
-                "<head>\n" +
-                "    <meta charset=\"UTF-8\">\n" +
-                "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-                "    <title>Conferma Account</title>\n" +
-                "    <style>\n" +
-                "        body {\n" +
-                "            font-family: Arial, sans-serif;\n" +
-                "            background-color: #f4f4f4;\n" +
-                "            margin: 0;\n" +
-                "            padding: 0;\n" +
-                "        }\n" +
-                "        .email-container {\n" +
-                "            max-width: 600px;\n" +
-                "            margin: 20px auto;\n" +
-                "            background: #ffffff;\n" +
-                "            border-radius: 8px;\n" +
-                "            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);\n" +
-                "            padding: 20px;\n" +
-                "        }\n" +
-                "        .email-header {\n" +
-                "            text-align: center;\n" +
-                "            margin-bottom: 20px;\n" +
-                "        }\n" +
-                "        .email-header h1 {\n" +
-                "            font-size: 24px;\n" +
-                "            color: #333333;\n" +
-                "        }\n" +
-                "        .email-body {\n" +
-                "            text-align: center;\n" +
-                "            color: #555555;\n" +
-                "            line-height: 1.6;\n" +
-                "        }\n" +
-                "        .email-body p {\n" +
-                "            margin: 10px 0;\n" +
-                "        }\n" +
-                "        .btn-confirm {\n" +
-                "            display: inline-block;\n" +
-                "            margin-top: 20px;\n" +
-                "            padding: 10px 20px;\n" +
-                "            background-color: #4CAF50;\n" +
-                "            color: #ffffff;\n" +
-                "            text-decoration: none;\n" +
-                "            font-size: 16px;\n" +
-                "            border-radius: 5px;\n" +
-                "        }\n" +
-                "        .btn-confirm:hover {\n" +
-                "            background-color: #45a049;\n" +
-                "        }\n" +
-                "        .btn-confirm:active {\n" +
-                "            color: #ffffff;\n" +
-                "        }\n" +
-                "        .email-footer {\n" +
-                "            text-align: center;\n" +
-                "            margin-top: 20px;\n" +
-                "            font-size: 12px;\n" +
-                "            color: #aaaaaa;\n" +
-                "        }\n" +
-                "    </style>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "    <div class=\"email-container\">\n" +
-                "        <div class=\"email-header\">\n" +
-                "            <h1>Conferma il tuo account</h1>\n" +
-                "        </div>\n" +
-                "        <div class=\"email-body\">\n" +
-                "            <p>Benvenuto in DVG</p>\n" +
-                "            <p>Grazie per esserti registrato! Clicca sul link qui sotto per confermare il tuo account.</p>\n" +
-                "            <a href=\"" + verificationLink + "\" class=\"btn-confirm\">Conferma account</a>\n" +
-                "        </div>\n" +
-                "        <div class=\"email-footer\">\n" +
-                "            <p>Se non hai richiesto la registrazione, ignora questa email.</p>\n" +
-                "        </div>\n" +
-                "    </div>\n" +
-                "</body>\n" +
-                "</html>"
+                        "<head>\n" +
+                        "    <meta charset=\"UTF-8\">\n" +
+                        "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+                        "    <title>Conferma Account</title>\n" +
+                        "    <style>\n" +
+                        "        body {\n" +
+                        "            font-family: Arial, sans-serif;\n" +
+                        "            background-color: #f4f4f4;\n" +
+                        "            margin: 0;\n" +
+                        "            padding: 0;\n" +
+                        "        }\n" +
+                        "        .email-container {\n" +
+                        "            max-width: 600px;\n" +
+                        "            margin: 20px auto;\n" +
+                        "            background: #ffffff;\n" +
+                        "            border-radius: 8px;\n" +
+                        "            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);\n" +
+                        "            padding: 20px;\n" +
+                        "        }\n" +
+                        "        .email-header {\n" +
+                        "            text-align: center;\n" +
+                        "            margin-bottom: 20px;\n" +
+                        "        }\n" +
+                        "        .email-header h1 {\n" +
+                        "            font-size: 24px;\n" +
+                        "            color: #333333;\n" +
+                        "        }\n" +
+                        "        .email-body {\n" +
+                        "            text-align: center;\n" +
+                        "            color: #555555;\n" +
+                        "            line-height: 1.6;\n" +
+                        "        }\n" +
+                        "        .email-body p {\n" +
+                        "            margin: 10px 0;\n" +
+                        "        }\n" +
+                        "        .btn-confirm {\n" +
+                        "            display: inline-block;\n" +
+                        "            margin-top: 20px;\n" +
+                        "            padding: 10px 20px;\n" +
+                        "            background-color: #4CAF50;\n" +
+                        "            color: #ffffff;\n" +
+                        "            text-decoration: none;\n" +
+                        "            font-size: 16px;\n" +
+                        "            border-radius: 5px;\n" +
+                        "        }\n" +
+                        "        .btn-confirm:hover {\n" +
+                        "            background-color: #45a049;\n" +
+                        "        }\n" +
+                        "        .btn-confirm:active {\n" +
+                        "            color: #ffffff;\n" +
+                        "        }\n" +
+                        "        .email-footer {\n" +
+                        "            text-align: center;\n" +
+                        "            margin-top: 20px;\n" +
+                        "            font-size: 12px;\n" +
+                        "            color: #aaaaaa;\n" +
+                        "        }\n" +
+                        "    </style>\n" +
+                        "</head>\n" +
+                        "<body>\n" +
+                        "    <div class=\"email-container\">\n" +
+                        "        <div class=\"email-header\">\n" +
+                        "            <h1>Conferma il tuo account</h1>\n" +
+                        "        </div>\n" +
+                        "        <div class=\"email-body\">\n" +
+                        "            <p>Benvenuto in DVG</p>\n" +
+                        "            <p>Grazie per esserti registrato! Clicca sul link qui sotto per confermare il tuo account.</p>\n" +
+                        "            <a href=\"" + verificationLink + "\" class=\"btn-confirm\">Conferma account</a>\n" +
+                        "        </div>\n" +
+                        "        <div class=\"email-footer\">\n" +
+                        "            <p>Se non hai richiesto la registrazione, ignora questa email.</p>\n" +
+                        "        </div>\n" +
+                        "    </div>\n" +
+                        "</body>\n" +
+                        "</html>"
         );
 
         Uni<Void> send = mailer.send(mail);
@@ -136,6 +136,174 @@ public class MailService {
                 failure -> System.out.println("Errore nell'invio della mail")
         );
     }
+
+    public void sendHostRequestRejectionEmail(String email) {
+
+        Mail mail = Mail.withHtml(
+                email,
+                "CONFERMA ANNULLAMENTO CREAZIONE ACCOUNT AZIENDA/PARTNER",
+                "<html lang=\"it\">\n" +
+                        "<head>\n" +
+                        "<meta charset=\"UTF-8\">\n" +
+                        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+                        "<title>Account Azienda/Partner Non Approvato</title>\n" +
+                        "<style>\n" +
+                        "        body {\n" +
+                        "            font-family: Arial, sans-serif;\n" +
+                        "            background-color: #f4f4f4;\n" +
+                        "            margin: 0;\n" +
+                        "            padding: 0;\n" +
+                        "        }\n" +
+                        "        .email-container {\n" +
+                        "            max-width: 600px;\n" +
+                        "            margin: 20px auto;\n" +
+                        "            background: #ffffff;\n" +
+                        "            border-radius: 8px;\n" +
+                        "            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);\n" +
+                        "            padding: 20px;\n" +
+                        "        }\n" +
+                        "        .email-header {\n" +
+                        "            text-align: center;\n" +
+                        "            margin-bottom: 20px;\n" +
+                        "        }\n" +
+                        "        .email-header h1 {\n" +
+                        "            font-size: 24px;\n" +
+                        "            color: #333333;\n" +
+                        "        }\n" +
+                        "        .email-body {\n" +
+                        "            color: #555555;\n" +
+                        "            line-height: 1.6;\n" +
+                        "        }\n" +
+                        "        .email-body p {\n" +
+                        "            margin: 10px 0;\n" +
+                        "        }\n" +
+                        "        .email-footer {\n" +
+                        "            text-align: center;\n" +
+                        "            margin-top: 20px;\n" +
+                        "            font-size: 12px;\n" +
+                        "            color: #aaaaaa;\n" +
+                        "        }\n" +
+                        "</style>\n" +
+                        "</head>\n" +
+                        "<body>\n" +
+                        "<div class=\"email-container\">\n" +
+                        "<div class=\"email-header\">\n" +
+                        "<h1>Account Non Approvato</h1>\n" +
+                        "</div>\n" +
+                        "<div class=\"email-body\">\n" +
+                        "<p>Ti ringraziamo per aver richiesto la registrazione come Azienda/Partner sulla nostra piattaforma.</p>\n" +
+                        "<p>Purtroppo, dopo un'attenta revisione, non possiamo approvare la tua richiesta in questo momento.</p>\n" +
+                        "<p>Se ritieni che ci sia stato un errore o desideri maggiori informazioni, ti invitiamo a contattarci.</p>\n" +
+                        "</div>\n" +
+                        "<div class=\"email-footer\">\n" +
+                        "<p>Grazie per il tuo interesse nella nostra piattaforma.</p>\n" +
+                        "</div>\n" +
+                        "</div>\n" +
+                        "</body>\n" +
+                        "</html>"
+        );
+
+        Uni<Void> send = mailer.send(mail);
+
+        // controllo se la mail è stata inviata con successo
+        send.subscribe().with(
+                success -> System.out.println("Mail inviata"),
+                failure -> System.out.println("Errore nell'invio della mail")
+        );
+    }
+
+    public void sendHostRequestApprovalEmail(String email, String generatedPsw) {
+        String verificationLink = BASE_URL + "/host/change-password";
+        Mail mail = Mail.withHtml(
+                email,
+                "CONFERMA CREAZIONE ACCOUNT AZIENDA/PARTNER",
+                "<html lang=\"it\">\n" +
+                        "<head>\n" +
+                        "<meta charset=\"UTF-8\">\n" +
+                        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
+                        "<title>Conferma Creazione Account Azienda/Partner</title>\n" +
+                        "<style>\n" +
+                        "        body {\n" +
+                        "            font-family: Arial, sans-serif;\n" +
+                        "            background-color: #f4f4f4;\n" +
+                        "            margin: 0;\n" +
+                        "            padding: 0;\n" +
+                        "        }\n" +
+                        "        .email-container {\n" +
+                        "            max-width: 600px;\n" +
+                        "            margin: 20px auto;\n" +
+                        "            background: #ffffff;\n" +
+                        "            border-radius: 8px;\n" +
+                        "            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);\n" +
+                        "            padding: 20px;\n" +
+                        "        }\n" +
+                        "        .email-header {\n" +
+                        "            text-align: center;\n" +
+                        "            margin-bottom: 20px;\n" +
+                        "        }\n" +
+                        "        .email-header h1 {\n" +
+                        "            font-size: 24px;\n" +
+                        "            color: #333333;\n" +
+                        "        }\n" +
+                        "        .email-body {\n" +
+                        "            color: #555555;\n" +
+                        "            line-height: 1.6;\n" +
+                        "        }\n" +
+                        "        .email-body p {\n" +
+                        "            margin: 10px 0;\n" +
+                        "        }\n" +
+                        "        .confirmation-button {\n" +
+                        "            display: block;\n" +
+                        "            width: 200px;\n" +
+                        "            margin: 20px auto;\n" +
+                        "            padding: 10px;\n" +
+                        "            background-color: #007bff;\n" +
+                        "            color: #ffffff;\n" +
+                        "            text-align: center;\n" +
+                        "            text-decoration: none;\n" +
+                        "            border-radius: 5px;\n" +
+                        "        }\n" +
+                        "        .confirmation-button:hover {\n" +
+                        "            background-color: #0056b3;\n" +
+                        "        }\n" +
+                        "        .email-footer {\n" +
+                        "            text-align: center;\n" +
+                        "            margin-top: 20px;\n" +
+                        "            font-size: 12px;\n" +
+                        "            color: #aaaaaa;\n" +
+                        "        }\n" +
+                        "</style>\n" +
+                        "</head>\n" +
+                        "<body>\n" +
+                        "<div class=\"email-container\">\n" +
+                        "<div class=\"email-header\">\n" +
+                        "<h1>Benvenuto!</h1>\n" +
+                        "</div>\n" +
+                        "<div class=\"email-body\">\n" +
+                        "<p>Ciao,</p>\n" +
+                        "<p>Grazie per aver creato un account come Azienda/Partner sulla nostra piattaforma.</p>\n" +
+                        "<p>Per completare la registrazione, ti preghiamo di confermare il tuo account. Ti abbiamo fornito una password provvisoria, ma per completare la verifica ed ottenere l'accesso dovrai cambiarla seguendo il link qui sotto:</p>\n" +
+                        "<p>Password provvisoria: " + generatedPsw + ":</p>\n" +
+                        "<a href=\" " + verificationLink + "\" class=\"confirmation-button\">Conferma Account</a>\n" +
+                        "<p>Se non hai richiesto questa registrazione, ignora questa email.</p>\n" +
+                        "</div>\n" +
+                        "<div class=\"email-footer\">\n" +
+                        "<p>Grazie per aver scelto la nostra piattaforma!</p>\n" +
+                        "</div>\n" +
+                        "</div>\n" +
+                        "</body>\n" +
+                        "</html>"
+        );
+
+        Uni<Void> send = mailer.send(mail);
+
+        // controllo se la mail è stata inviata con successo
+        send.subscribe().with(
+                success -> System.out.println("Mail inviata"),
+                failure -> System.out.println("Errore nell'invio della mail")
+        );
+    }
+
 
     public VerificationToken getVerificationToken(String token) {
         return verificationTokenRepository.findByToken(token);
