@@ -48,5 +48,9 @@ public class UserService {
                 ))
                 .toList();
     }
+
+    public List<User> findUserByFullName(String s) {
+        return userRepository.findUsersByFullName(s);
+    }
 }
 

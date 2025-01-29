@@ -2,11 +2,14 @@ package Its.incom.pw5.service;
 
 import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.Topic;
+import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
+import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
@@ -21,6 +24,9 @@ public class EventService {
 
     @Inject
     TopicService topicService;
+
+    @Inject
+    UserService userService;
 
     public Event createEvent(Event event) {
         // Default status to PENDING if not provided
@@ -85,5 +91,36 @@ public class EventService {
         // Persist updated event
         eventRepository.updateEvent(existingEvent);
         return existingEvent;
+    }
+
+    public List<Event> getEventsByTopic(List<String> topics) {
+        return eventRepository.getEventsByTopic(topics);
+    }
+
+    public List<Event> getEventsByDate(String date) {
+        LocalDateTime localDate = LocalDateTime.parse(date);
+        return eventRepository.getEventsByDate(localDate);
+    }
+
+    public List<Event> getEventsBySpeaker(List<String> speakersNames) {
+        List<Event> events = new ArrayList<>();
+        for (String s : speakersNames) {
+            List<User> usersByFullName = userService.findUserByFullName(s);
+            if (usersByFullName != null) {
+                for (User u : usersByFullName) {
+                    if (Role.SPEAKER.equals(u.getRole())) {
+                        List<Event> eventsBySpeaker = eventRepository.getEventsBySpeakerMail(u.getEmail());
+                        if (eventsBySpeaker != null) {
+                            events.addAll(eventsBySpeaker);
+                        }
+                    }
+                }
+            }
+        }
+        return events;
+    }
+
+    public List<Event> getAllEvents() {
+        return eventRepository.getAllEvents();
     }
 }

@@ -8,6 +8,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Path("/events")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
@@ -42,5 +45,37 @@ public class EventResource {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("An unexpected error occurred.").build();
         }
+    }
+
+    @GET
+    public List<Event> getEventsByTopic(@QueryParam("topics") List<String> topics, @QueryParam("date") String date, @QueryParam("speakers") List<String> speakers) {
+        List<Event> events = new ArrayList<>();
+
+        if ((topics == null || topics.isEmpty()) && (date == null || date.isEmpty()) && (speakers == null || speakers.isEmpty())) {
+            return eventService.getAllEvents();
+        }
+
+        if (topics != null && !topics.isEmpty()) {
+            List<Event> eventsByTopic = eventService.getEventsByTopic(topics);
+            if (eventsByTopic != null) {
+                events.addAll(eventsByTopic);
+            }
+        }
+
+        if (date != null && !date.isEmpty()) {
+            List<Event> eventsByDate = eventService.getEventsByDate(date);
+            if (eventsByDate != null) {
+                events.addAll(eventsByDate);
+            }
+        }
+
+        if (speakers != null && !speakers.isEmpty()) {
+            List<Event> eventsBySpeaker = eventService.getEventsBySpeaker(speakers);
+            if (eventsBySpeaker != null) {
+                events.addAll(eventsBySpeaker);
+            }
+        }
+
+        return events;
     }
 }
