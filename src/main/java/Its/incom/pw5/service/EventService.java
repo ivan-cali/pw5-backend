@@ -60,6 +60,7 @@ public class EventService {
         newEvent.setRegisterdPartecipants(0);
         newEvent.setSpeakers(new ArrayList<>());
         newEvent.setHosts(new ArrayList<>()); // TODO: Implement hosts
+        newEvent.setTicketIds(new ArrayList<>());
         newEvent.setPendingSpeakerRequests(
                 event.getPendingSpeakerRequests() != null ? new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
         );
@@ -309,10 +310,13 @@ public class EventService {
         // 2. Persist the ticket to MongoDB
         ticketRepository.addTicket(newTicket);
 
-        // 3. Add the ticket to the user's booked tickets list
+        // 3. Add the ticket's ObjectId to the event's ticketIds list
+        existingEvent.getTicketIds().add(newTicket.getId());
+
+        // 4. Add the ticket to the user's booked tickets list
         user.getUserDetails().getBookedTickets().add(newTicket);
 
-        // 4. Update event's registered participants and user's booked events
+        // 5. Update event's registered participants and user's booked events
         user.getUserDetails().getBookedEvents().add(existingEvent);
         existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
 
@@ -351,6 +355,10 @@ public class EventService {
                 .firstResult();
 
         if (ticketToRemove != null) {
+            // Remove the ticket from the event's ticketIds list
+            existingEvent.getTicketIds().remove(ticketToRemove.getId());
+
+            // Delete the ticket from the database
             ticketRepository.delete(ticketToRemove);
         }
 
