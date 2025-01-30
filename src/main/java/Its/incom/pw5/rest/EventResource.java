@@ -192,7 +192,7 @@ public class EventResource {
     }
 
     @GET
-    public List<Event> getEventsByTopic(@QueryParam("topics") List<String> topics, @QueryParam("date") String date, @QueryParam("speakers") List<String> speakers) {
+    public List<Event> getEvents(@QueryParam("topics") List<String> topics, @QueryParam("date") String date, @QueryParam("speakers") List<String> speakers) {
         List<Event> events = new ArrayList<>();
 
         if ((topics == null || topics.isEmpty()) && (date == null || date.isEmpty()) && (speakers == null || speakers.isEmpty())) {
