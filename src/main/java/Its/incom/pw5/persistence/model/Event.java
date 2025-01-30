@@ -22,6 +22,7 @@ public class Event {
     private List<User> pendingSpeakerRequests;
     private int maxPartecipants;
     private int registerdPartecipants;
+    private List<ObjectId> ticketIds;
 
     public List<User> getPendingSpeakerRequests() {
         return pendingSpeakerRequests;
@@ -29,6 +30,13 @@ public class Event {
 
     public void setPendingSpeakerRequests(List<User> pendingSpeakerRequests) {
         this.pendingSpeakerRequests = pendingSpeakerRequests;
+    }
+    public List<ObjectId> getTicketIds() {
+        return ticketIds;
+    }
+
+    public void setTicketIds(List<ObjectId> ticketIds) {
+        this.ticketIds = ticketIds;
     }
 
     public LocalDateTime getEndDate() {
@@ -124,11 +132,11 @@ public class Event {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Event event = (Event) o;
-        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(hosts, event.hosts) && Objects.equals(title, event.title) && status == event.status && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests);
+        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(hosts, event.hosts) && Objects.equals(title, event.title) && status == event.status && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests) && Objects.equals(ticketIds, event.ticketIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, startDate, endDate, place, speakers, topics, hosts, title, status, pendingSpeakerRequests, maxPartecipants, registerdPartecipants);
+        return Objects.hash(id, startDate, endDate, place, speakers, topics, hosts, title, status, pendingSpeakerRequests, maxPartecipants, registerdPartecipants, ticketIds);
     }
 }
