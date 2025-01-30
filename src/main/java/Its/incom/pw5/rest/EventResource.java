@@ -88,7 +88,9 @@ public class EventResource {
             return Response.ok(event).build();
         } catch (WebApplicationException ex) {
             return Response.status(ex.getResponse().getStatus())
-                    .entity(ex.getMessage()).build();
+                    .entity(ex.getResponse().getEntity())
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
         } catch (Exception ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("An unexpected error occurred.").build();

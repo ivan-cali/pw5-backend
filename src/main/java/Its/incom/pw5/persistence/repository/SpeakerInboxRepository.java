@@ -38,4 +38,9 @@ public class SpeakerInboxRepository implements PanacheMongoRepository<SpeakerInb
     public List<SpeakerInbox> getRequestsByEventId(ObjectId id) {
         return find("eventId", id).list();
     }
+
+    public boolean existsBySpeakerEmailAndEventId(String speakerEmail, ObjectId eventId) {
+        return find("speakerEmail = ?1 and eventId = ?2", speakerEmail, eventId)
+                .firstResultOptional().isPresent();
+    }
 }

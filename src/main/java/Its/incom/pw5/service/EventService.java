@@ -15,6 +15,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
@@ -120,8 +121,20 @@ public class EventService {
                     User speaker = userService.getUserByEmail(speakerRequest.getEmail());
                     if (speaker == null) {
                         throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                                .entity("User " + speakerRequest.getEmail() + " does not exist.").build());
+                                .entity("User " + speakerRequest.getEmail() + " does not exist.")
+                                .type(MediaType.APPLICATION_JSON)
+                                .build());
                     }
+                    // Check if a speaker request already exists for this user and event
+                    if (checkIfSpeakerRequestExists(speaker.getEmail(), existingEvent.getId())) {
+                        throw new WebApplicationException(
+                                Response.status(Response.Status.BAD_REQUEST)
+                                        .entity("{\"error\":\"A speaker request already exists\"}")
+                                        .type(MediaType.APPLICATION_JSON)
+                                        .build()
+                        );
+                    }
+
                     addSpeakerToEvent(speaker, existingEvent.getId());
                     newPendingRequests.add(speakerRequest);
                 }
@@ -129,20 +142,11 @@ public class EventService {
             // Ensure the event stores pending speaker requests
             existingEvent.setPendingSpeakerRequests(newPendingRequests);
         }
-
-        // Handle optional speakerEmail query parameter
-        if (speakerEmail != null && !speakerEmail.isBlank()) {
-            User speaker = userService.getUserByEmail(speakerEmail);
-            if (speaker == null) {
-                throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("User " + speakerEmail + " does not exist.").build());
-            }
-            addSpeakerToEvent(speaker, existingEvent.getId());
-        }
-
-        // Persist updated event
-        eventRepository.updateEvent(existingEvent);
         return existingEvent;
+    }
+
+    public boolean checkIfSpeakerRequestExists(String speakerEmail, ObjectId eventId) {
+        return speakerInboxRepository.existsBySpeakerEmailAndEventId(speakerEmail, eventId);
     }
 
     private void processPendingSpeakerRequests(List<User> pendingSpeakerRequests, ObjectId eventId) {
