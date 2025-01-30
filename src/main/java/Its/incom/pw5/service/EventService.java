@@ -258,6 +258,21 @@ public class EventService {
                 // Remove all related SpeakerInbox entries
                 removeRelatedSpeakerInboxes(event.getId());
 
+                // Find all tickets for this event that have a userId assigned and are in PENDING status
+                List<Ticket> ticketsToExpire = ticketRepository.find(
+                        "eventId = ?1 and userId != null and status = ?2", event.getId(), TicketStatus.PENDING
+                ).list();
+
+                if (!ticketsToExpire.isEmpty()) {
+                    for (Ticket ticket : ticketsToExpire) {
+                        ticket.setStatus(TicketStatus.EXPIRED);
+                        ticketRepository.updateTicket(ticket);
+                        System.out.println("Expired ticket with ID: " + ticket.getId() + " for event: " + event.getTitle());
+                    }
+                } else {
+                    System.out.println("No pending tickets to expire for event: " + event.getTitle());
+                }
+
                 deleteUnassignedTickets(event);
             }
         } else {
