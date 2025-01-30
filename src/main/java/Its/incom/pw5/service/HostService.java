@@ -86,18 +86,6 @@ public class HostService {
     }
 
 
-    //update host
-//    public Host update(ObjectId hostId, Map<String, Object> updates) throws HostUpdateException {
-//        try {
-//            //get host
-//            Host host = hostRepository.getById(hostId);
-//
-//            return hostRepository.update(host, updates);
-//        } catch (IllegalArgumentException e) {
-//            throw new HostUpdateException(e.getMessage());
-//        }
-//    }
-
     public void changeHostPsw(Host host, PasswordEditRequest passwordEditRequest) throws HostNotFoundException, HostUpdateException {
         try {
             String newPsw = passwordEditRequest.getNewPsw();
