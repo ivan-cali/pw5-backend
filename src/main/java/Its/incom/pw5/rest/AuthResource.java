@@ -172,6 +172,11 @@ public class AuthResource {
                 return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
             }
 
+            // Check if sessions provides a Host
+            if (hostService.getHostById(session.getUserId()) != null) {
+                return Response.status(Response.Status.UNAUTHORIZED).entity("Host cannot create a new host.").build();
+            }
+
             hostService.create(session.getUserId(), host);
 
             //notification of the new host creation request
