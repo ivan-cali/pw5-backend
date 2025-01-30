@@ -9,6 +9,7 @@ import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
 import Its.incom.pw5.persistence.repository.TicketRepository;
+import Its.incom.pw5.persistence.repository.WaitingListRepository;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -623,5 +624,9 @@ public class EventService {
 
     public List<Event> getAllEvents() {
         return eventRepository.getAllEvents();
+    }
+
+    public void updateEventStatus(Event event) {
+        eventRepository.updateEvent(event);
     }
 }

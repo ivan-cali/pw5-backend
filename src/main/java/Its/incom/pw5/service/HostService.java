@@ -148,4 +148,8 @@ public class HostService {
     public Host getHostById(String hostId) {
         return hostRepository.getById(new ObjectId(hostId));
     }
+
+    public void updateEvents(Host host) {
+        hostRepository.updateHost(host);
+    }
 }
