@@ -629,26 +629,40 @@ public class EventService {
                         .entity("Event not found.").build()));
 
         // Check if the host is authorized to delete the event
-        if (!Objects.equals(event.getHost(), host.getCreatedBy())) {
+        if (!Objects.equals(event.getHost(), host.getEmail())) {
             throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
                     .entity("User is not authorized to delete this event.").build());
         }
 
         // Remove the event from host both programmed (if CONFIRMED) and past (if ARCHIVED) events
-        host.getProgrammedEvents().removeIf(programmedEvent ->
-                programmedEvent.getId().equals(event.getId()));
-        host.getPastEvents().removeIf(pastEvent ->
-                pastEvent.getId().equals(event.getId()));
+        if (event.getStatus() == EventStatus.CONFIRMED) {
+            host.getProgrammedEvents().removeIf(programmedEvent ->
+                    programmedEvent.getId().equals(event.getId()));
+        } else if (event.getStatus() == EventStatus.ARCHIVED) {
+            host.getPastEvents().removeIf(pastEvent ->
+                    pastEvent.getId().equals(event.getId()));
+        } else {
+            System.out.println("Event status is not CONFIRMED or ARCHIVED.");
+        }
 
         // Remove the event from user both booked events (if CONFIRMED) and past events (if ARCHIVED)
         List<String> userEmailsToNotify = new ArrayList<>();
-        for (User user : userService.getAllUsers()) {
-            user.getUserDetails().getBookedEvents().removeIf(bookedEvent ->
-                    bookedEvent.getId().equals(event.getId()));
-            user.getUserDetails().getArchivedEvents().removeIf(archivedEvent ->
-                    archivedEvent.getId().equals(event.getId()));
-            userEmailsToNotify.add(user.getEmail());
-            userService.updateUser(user);
+        if (event.getStatus() == EventStatus.CONFIRMED) {
+            for (User user : userService.getAllUsers()) {
+                user.getUserDetails().getBookedEvents().removeIf(bookedEvent ->
+                        bookedEvent.getId().equals(event.getId()));
+                userEmailsToNotify.add(user.getEmail());
+                userService.updateUser(user);
+            }
+        } else if (event.getStatus() == EventStatus.ARCHIVED) {
+            for (User user : userService.getAllUsers()) {
+                user.getUserDetails().getArchivedEvents().removeIf(archivedEvent ->
+                        archivedEvent.getId().equals(event.getId()));
+                userEmailsToNotify.add(user.getEmail());
+                userService.updateUser(user);
+            }
+        } else {
+            System.out.println("Event status is not CONFIRMED or ARCHIVED.");
         }
 
         // Remove the ticket from user's booked tickets
@@ -667,11 +681,15 @@ public class EventService {
         }
 
         // Remove event tickets from the database
-        for (ObjectId ticketIds : event.getTicketIds()) {
-            Ticket ticket = ticketRepository.findByIdOptional(ticketIds)
-                    .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                            .entity("Ticket not found.").build()));
-            ticketRepository.delete(ticket);
+        if (event.getTicketIds() != null) {
+            for (ObjectId ticketIds : event.getTicketIds()) {
+                Ticket ticket = ticketRepository.findByIdOptional(ticketIds)
+                        .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                                .entity("Ticket not found.").build()));
+                ticketRepository.delete(ticket);
+            }
+        } else {
+            System.out.println("No tickets found for event: " + event.getTitle());
         }
 
         // Remove speaker both inbox requests for the event and from the event
