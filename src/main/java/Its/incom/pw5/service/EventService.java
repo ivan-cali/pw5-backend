@@ -356,6 +356,12 @@ public class EventService {
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity("Event not found.").build()));
 
+        // Check if the user is a speaker for the event
+        if (existingEvent.getSpeakers().stream().anyMatch(speaker -> speaker.getEmail().equals(user.getEmail()))) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("User is a speaker for this event.").build());
+        }
+
         // Check if the user has already booked the event (compare ObjectId)
         boolean alreadyBooked = user.getUserDetails().getBookedEvents().stream()
                 .anyMatch(bookedEvent -> bookedEvent.getId().equals(existingEvent.getId()));

@@ -140,6 +140,12 @@ public class EventResource {
                     .entity("Invalid session ID.").build();
         }
 
+        Host host = hostService.getHostById(session.getUserId());
+        if (host != null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Hosts cannot book events.").build();
+        }
+
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
