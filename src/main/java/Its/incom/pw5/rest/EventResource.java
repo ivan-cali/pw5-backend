@@ -6,6 +6,11 @@ import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
+import Its.incom.pw5.rest.model.UserBookingResponse;
+import Its.incom.pw5.service.EventService;
+import Its.incom.pw5.service.MailService;
+import Its.incom.pw5.service.SessionService;
+import Its.incom.pw5.service.UserService;
 import Its.incom.pw5.service.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -163,30 +168,34 @@ public class EventResource {
     @GET
     @Path("/booked")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Event> getUserBookedEvents(@CookieParam("SESSION_ID") String sessionId) {
-        if (sessionId == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.").build());
+    public Response getUserBookedEvents(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session ID is required.")
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session ID.")
+                    .build();
         }
 
+        // Retrieve User
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User not found.")
+                    .build();
         }
 
-        if (UserStatus.VERIFIED != user.getStatus()) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not verified.").build());
-        }
+        // Prepare Response
+        UserBookingResponse response = new UserBookingResponse();
+        response.setBookedEvents(user.getUserDetails().getBookedEvents());
+        response.setBookedTickets(user.getUserDetails().getBookedTickets());
 
-        return user.getUserDetails().getBookedEvents();
+        return Response.ok(response).build();
     }
 
     @GET
