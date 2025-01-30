@@ -30,4 +30,12 @@ public class SpeakerInboxRepository implements PanacheMongoRepository<SpeakerInb
     public boolean speakerWithConfirmedStatus(List<SpeakerInbox> speakers) {
         return speakers.stream().anyMatch(s -> s.getStatus().equals(SpeakerInboxStatus.CONFIRMED));
     }
+
+    public void deleteRequest(ObjectId inboxId) {
+        deleteById(inboxId);
+    }
+
+    public List<SpeakerInbox> getRequestsByEventId(ObjectId id) {
+        return find("eventId", id).list();
+    }
 }

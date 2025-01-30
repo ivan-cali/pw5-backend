@@ -95,6 +95,36 @@ public class EventResource {
         }
     }
 
+    @DELETE
+    @Path("/{id}")
+    public Response deleteEvent(@PathParam("id") ObjectId id, @CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session ID is required.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session ID.").build();
+        }
+
+        Host host = hostService.getHostById(session.getUserId());
+        if (host == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not an admin or host.").build();
+        }
+
+        User user = userService.getUserByEmail(host.getCreatedBy());
+        if (user == null || user.getRole() != Role.ADMIN) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not an admin or host.").build();
+        }
+
+        eventService.deleteEvent(id, host);
+        return Response.ok().entity("Event deleted successfully.").build();
+    }
+
     @PUT
     @Path("/book")
     @Consumes(MediaType.APPLICATION_JSON)

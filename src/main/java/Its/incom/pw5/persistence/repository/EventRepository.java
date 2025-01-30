@@ -33,4 +33,8 @@ public class EventRepository implements PanacheMongoRepository<Event> {
     public List<Event> getAllEvents() {
         return listAll();
     }
+
+    public void deleteEvent(Event event) {
+        delete(event);
+    }
 }
