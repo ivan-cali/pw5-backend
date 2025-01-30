@@ -384,7 +384,9 @@ public class EventService {
             }
 
         // 3. Add the ticket's ObjectId to the event's ticketIds list
-        existingEvent.getTicketIds().add(assignedTicket.getId());
+        if (!existingEvent.getTicketIds().contains(assignedTicket.getId())) {
+            existingEvent.getTicketIds().add(assignedTicket.getId());
+        }
 
         // 4. Add the ticket to the user's booked tickets list
         user.getUserDetails().getBookedTickets().add(assignedTicket);
