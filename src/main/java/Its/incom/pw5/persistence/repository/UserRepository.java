@@ -38,4 +38,10 @@ public class UserRepository implements PanacheMongoRepository<User> {
     public void updateUser(User updatedUser) {
         update(updatedUser);
     }
+
+    public List<User> findUsersByFullName(String s) {
+        // s is a full name, so we need to split it into first and last name
+        String[] names = s.split(" ");
+        return find("firstName = ?1 and lastName = ?2", names[0], names[1]).list();
+    }
 }

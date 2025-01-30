@@ -85,6 +85,7 @@ public class HostService {
         }
     }
 
+
     public void changeHostPsw(Host host, PasswordEditRequest passwordEditRequest) throws HostNotFoundException, HostUpdateException {
         try {
             String newPsw = passwordEditRequest.getNewPsw();

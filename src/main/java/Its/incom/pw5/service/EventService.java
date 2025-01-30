@@ -4,14 +4,16 @@ import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
+import Its.incom.pw5.persistence.model.enums.TicketStatus;
+import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
+import Its.incom.pw5.persistence.repository.TicketRepository;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
@@ -28,10 +30,12 @@ public class EventService {
     private final SpeakerInboxRepository speakerInboxRepository;
     private final WaitingListService waitingListService;
     private final MailService mailService;
+    private final TicketRepository ticketRepository;
 
-    public EventService(EventRepository eventRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository, WaitingListService waitingListService, MailService mailService) {
+    public EventService(EventRepository eventRepository,TicketRepository ticketRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository) {
         this.eventRepository = eventRepository;
         this.topicService = topicService;
+        this.ticketRepository = ticketRepository;
         this.userService = userService;
         this.speakerInboxRepository = speakerInboxRepository;
         this.waitingListService = waitingListService;
@@ -62,6 +66,7 @@ public class EventService {
         newEvent.setRegisterdPartecipants(0);
         newEvent.setSpeakers(new ArrayList<>());
         newEvent.setHosts(new ArrayList<>()); // TODO: Implement hosts
+        newEvent.setTicketIds(new ArrayList<>());
         newEvent.setPendingSpeakerRequests(
                 event.getPendingSpeakerRequests() != null ? new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
         );
@@ -72,12 +77,27 @@ public class EventService {
             throw new IllegalStateException("Failed to persist event, as the ID is null.");
         }
 
+        // Pre-create tickets if the event has a maximum number of participants
+        if (newEvent.getMaxPartecipants() > 0) {
+            createUnassignedTickets(newEvent);
+        }
+
         // Process pending speaker requests
         processPendingSpeakerRequests(newEvent.getPendingSpeakerRequests(), newEvent.getId());
 
         event.setPendingSpeakerRequests(null);
 
         return newEvent;
+    }
+    private void createUnassignedTickets(Event event) {
+        List<ObjectId> ticketIds = new ArrayList<>();
+        for (int i = 0; i < event.getMaxPartecipants(); i++) {
+            Ticket ticket = new Ticket(null, event.getId(), TicketStatus.PENDING);
+            ticketRepository.addTicket(ticket);
+            ticketIds.add(ticket.getId());
+        }
+        event.setTicketIds(ticketIds);
+        eventRepository.updateEvent(event);
     }
 
     public Event updateEvent(ObjectId id, Event updatedEvent, String speakerEmail) {
@@ -155,6 +175,7 @@ public class EventService {
             if (topic != null) {
                 finalTopics.add(topic.getName());
             }
+            event.setTopics(new ArrayList<>(finalTopics));
         }
         event.setTopics(finalTopics);
     }
@@ -222,7 +243,7 @@ public class EventService {
         System.out.println("Application started, running archivePastEvents now...");
         archivePastEvents();
     }
-
+    @Transactional
     @Scheduled(cron = "0 0 0 * * ?")
     public void archivePastEvents() {
         System.out.println("Scheduled task 'archivePastEvents' started at: " + LocalDateTime.now());
@@ -243,12 +264,66 @@ public class EventService {
 
                 // Remove all related SpeakerInbox entries
                 removeRelatedSpeakerInboxes(event.getId());
+
+                // Find all tickets for this event that have a userId assigned and are in PENDING status
+                List<Ticket> ticketsToExpire = ticketRepository.find(
+                        "eventId = ?1 and userId != null and status = ?2", event.getId(), TicketStatus.PENDING
+                ).list();
+
+                if (!ticketsToExpire.isEmpty()) {
+                    for (Ticket ticket : ticketsToExpire) {
+                        ticket.setStatus(TicketStatus.EXPIRED);
+                        ticketRepository.updateTicket(ticket);
+                        System.out.println("Expired ticket with ID: " + ticket.getId() + " for event: " + event.getTitle());
+                    }
+                } else {
+                    System.out.println("No pending tickets to expire for event: " + event.getTitle());
+                }
+
+                deleteUnassignedTickets(event);
             }
         } else {
             System.out.println("No events to archive at this time.");
         }
 
         System.out.println("Scheduled task 'archivePastEvents' completed at: " + LocalDateTime.now());
+    }
+
+    private void deleteUnassignedTickets(Event event) {
+        List<Ticket> unassignedTickets = ticketRepository.find(
+                "{ 'eventId' : ?1, 'userId' : null }", event.getId()
+        ).list();
+
+        System.out.println("Found " + unassignedTickets.size() + " unassigned ticket(s) for event '" + event.getTitle() + "'");
+
+        if (!unassignedTickets.isEmpty()) {
+            List<ObjectId> deletedTicketIds = new ArrayList<>();
+            for (Ticket ticket : unassignedTickets) {
+                System.out.println("Attempting to delete ticket with ID: " + ticket.getId());
+                // Delete the ticket using deleteEmptyTicket
+                boolean deleted = ticketRepository.deleteEmptyTicket(ticket);
+                if (deleted) {
+                    System.out.println("Successfully deleted unassigned ticket with ID: " + ticket.getId());
+                    deletedTicketIds.add(ticket.getId());
+                } else {
+                    System.err.println("Failed to delete unassigned ticket with ID: " + ticket.getId());
+                }
+            }
+
+            // Remove the deleted ticket IDs from the event's ticketIds list
+            if (event.getTicketIds() != null && !event.getTicketIds().isEmpty()) {
+                System.out.println("Removing deleted ticket IDs from event's ticketIds list.");
+                boolean removed = event.getTicketIds().removeAll(deletedTicketIds);
+                if (removed) {
+                    eventRepository.updateEvent(event);
+                    System.out.println("Updated event '" + event.getTitle() + "' by removing " + deletedTicketIds.size() + " unassigned ticket(s).");
+                } else {
+                    System.err.println("No matching ticket IDs found in event's ticketIds list for event: " + event.getTitle());
+                }
+            }
+        } else {
+            System.out.println("No unassigned tickets to delete for event: " + event.getTitle());
+        }
     }
 
 
@@ -281,8 +356,11 @@ public class EventService {
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity("Event not found.").build()));
 
-        // Check if the user has already booked the event
-        if (user.getUserDetails().getBookedEvents().contains(existingEvent)) {
+        // Check if the user has already booked the event (compare ObjectId)
+        boolean alreadyBooked = user.getUserDetails().getBookedEvents().stream()
+                .anyMatch(bookedEvent -> bookedEvent.getId().equals(existingEvent.getId()));
+
+        if (alreadyBooked) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("User has already booked this event.").build());
         }
@@ -317,18 +395,46 @@ public class EventService {
             waitingListService.addUserToWaitingList(waitingList, user);
 
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event is full. User has been added to the waiting list.").build());
-        } else {
-            // TODO: Generate a ticket for the user (if the event has unlimited capacity) or take a ticket from the event's capacity
-
-            // Add the user to the event
-            existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
-            user.getUserDetails().getBookedEvents().add(existingEvent);
-
-            // Persist the updated event and user
-            eventRepository.updateEvent(existingEvent);
-            userService.updateUserBookedEvents(user);
+                    .entity("Event is full.").build());
         }
+        // If the event has a limited number of participants, assign an unassigned ticket
+            Ticket assignedTicket;
+
+            if (existingEvent.getMaxPartecipants() > 0) {
+                // Find an existing unassigned ticket for the event
+                assignedTicket = ticketRepository.find("eventId = ?1 and status = ?2", existingEvent.getId(), TicketStatus.PENDING)
+                        .firstResult();
+
+                if (assignedTicket == null) {
+                    throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                            .entity("No available tickets for this event.").build());
+                }
+
+                // Assign the ticket to the user
+                assignedTicket.setUserId(user.getId());
+                assignedTicket.setStatus(TicketStatus.PENDING);
+                ticketRepository.updateTicket(assignedTicket);
+            } else {
+                // If no max participants, create a new ticket for the user
+                assignedTicket = new Ticket(user.getId(), existingEvent.getId(), TicketStatus.PENDING);
+                ticketRepository.addTicket(assignedTicket);
+            }
+
+        // 3. Add the ticket's ObjectId to the event's ticketIds list
+        if (!existingEvent.getTicketIds().contains(assignedTicket.getId())) {
+            existingEvent.getTicketIds().add(assignedTicket.getId());
+        }
+
+        // 4. Add the ticket to the user's booked tickets list
+        user.getUserDetails().getBookedTickets().add(assignedTicket);
+
+        // 5. Update event's user's booked events
+        user.getUserDetails().getBookedEvents().add(existingEvent);
+
+        // Persist the updated event and user
+        eventRepository.updateEvent(existingEvent);
+        userService.updateUserBookedEvents(user);
+        updateRegisteredParticipants();
     }
 
     public void checkAndRevokeEvent(Event event, User user) {
@@ -358,19 +464,43 @@ public class EventService {
                     .entity("Event has already occurred.").build());
         }
 
-        // Remove the user from the event
-        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() - 1);
+        // Check if the event starts within the next two weeks
+        LocalDateTime twoWeeksFromNow = LocalDateTime.now().plusWeeks(2);
+        if (existingEvent.getStartDate().isBefore(twoWeeksFromNow)) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Cannot revoke booking within two weeks of event start.").build());
+        }
+
+        // Find the user's ticket for this event
+        Ticket ticketToUpdate = ticketRepository.find("userId = ?1 and eventId = ?2", user.getId(), existingEvent.getId())
+                .firstResult();
+
+        if (ticketToUpdate != null) {
+            // Nullify the user ID to revoke the ticket's assignment
+            ticketRepository.nullifyUserId(ticketToUpdate);
+            Ticket existingTicket = ticketRepository.findByIdOptional(ticketToUpdate.getId())
+                    .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                            .entity("Ticket not found with ID: " + ticketToUpdate.getId())
+                            .build()));
+
+
+            // Refresh the ticket code
+            ticketRepository.refreshTicketCode(existingTicket);
+
+            // Remove the ticket ID from the event's ticketIds list
+            existingEvent.getTicketIds().remove(ticketToUpdate.getId());
+
+            // Remove the ticket from the user's booked tickets list
+            user.getUserDetails().getBookedTickets().removeIf(ticket -> ticket.getId().equals(ticketToUpdate.getId()));
+        }
 
         // Remove the event from the user's booked events
-        List<Event> bookedEvents = user.getUserDetails().getBookedEvents();
-        for (Event e : bookedEvents) {
-            if (e.getId().equals(existingEvent.getId())) {
-                bookedEvents.remove(e);
-                break;
-            }
-        }
-        user.getUserDetails().setBookedEvents(bookedEvents);
+        user.getUserDetails().getBookedEvents().removeIf(bookedEvent -> bookedEvent.getId().equals(existingEvent.getId()));
 
+        // Remove the ticket from the user's booked tickets
+        user.getUserDetails().getBookedTickets().removeIf(ticket ->
+                ticket.getId().equals(ticketToUpdate.getId())
+        );
         // TODO: Remove the ticket from the user's ticket list
         // TODO: Generate a new ticket if the event has limited capacity, if not, do nothing
 
@@ -413,11 +543,74 @@ public class EventService {
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUserBookedEvents(user);
+        updateRegisteredParticipants();
     }
 
     public Event getEventById(Event eventId) {
         return eventRepository.findByIdOptional(eventId.getId())
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity("Event not found.").build()));
+    }
+    @Scheduled(cron = "0 0 0 * * ?")  // Runs every day at midnight
+    public void updateRegisteredParticipants() {
+        System.out.println("Scheduled task 'updateRegisteredParticipants' started.");
+
+        // Fetch all events from the database
+        List<Event> allEvents = eventRepository.findAll().list();
+
+        for (Event event : allEvents) {
+            // Count only tickets with a userId assigned for the event
+            long ticketCount = ticketRepository.count("{ eventId: ?1, userId: { $ne: null } }", event.getId());
+
+            // Determine the number of registered participants
+            int registeredParticipants;
+            if (event.getMaxPartecipants() > 0) {
+                registeredParticipants = (int) Math.min(ticketCount, event.getMaxPartecipants());
+            } else {
+                // If no max participants limit, use the actual ticket count
+                registeredParticipants = (int) ticketCount;
+            }
+
+            // Update the registered participants field with the ticket count
+            event.setRegisterdPartecipants((int) ticketCount);
+
+            // Persist the updated event
+            eventRepository.updateEvent(event);
+
+            System.out.println("Updated event '" + event.getTitle() + "' with " + ticketCount + " registered participants.");
+        }
+
+        System.out.println("Scheduled task 'updateRegisteredParticipants' completed.");
+    }
+
+    public List<Event> getEventsByTopic(List<String> topics) {
+        return eventRepository.getEventsByTopic(topics);
+    }
+
+    public List<Event> getEventsByDate(String date) {
+        LocalDateTime localDate = LocalDateTime.parse(date);
+        return eventRepository.getEventsByDate(localDate);
+    }
+
+    public List<Event> getEventsBySpeaker(List<String> speakersNames) {
+        List<Event> events = new ArrayList<>();
+        for (String s : speakersNames) {
+            List<User> usersByFullName = userService.findUserByFullName(s);
+            if (usersByFullName != null) {
+                for (User u : usersByFullName) {
+                    if (Role.SPEAKER.equals(u.getRole())) {
+                        List<Event> eventsBySpeaker = eventRepository.getEventsBySpeakerMail(u.getEmail());
+                        if (eventsBySpeaker != null) {
+                            events.addAll(eventsBySpeaker);
+                        }
+                    }
+                }
+            }
+        }
+        return events;
+    }
+
+    public List<Event> getAllEvents() {
+        return eventRepository.getAllEvents();
     }
 }
