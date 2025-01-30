@@ -110,16 +110,32 @@ public class EventService {
         // Validate event dates
         validateEventDates(existingEvent, updatedEvent);
 
-        // Update editable fields
-        updateEditableFields(existingEvent, updatedEvent);
-
-        // if the event is confirmed cannot edit
+        // Check if the event is confirmed and throw an exception if it is
         if (existingEvent.getStatus() == EventStatus.CONFIRMED) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Cannot edit a confirmed event.").build());
         }
 
-        // Process pending speaker requests properly
+        // Track changes to the max participants field
+        boolean maxParticipantsChanged = updatedEvent.getMaxPartecipants() > 0
+                && updatedEvent.getMaxPartecipants() != existingEvent.getMaxPartecipants();
+
+        // Update editable fields
+        updateEditableFields(existingEvent, updatedEvent);
+
+        // If maxParticipants has changed, delete and regenerate tickets
+        if (maxParticipantsChanged) {
+            // Clear the ticketIds list
+            existingEvent.getTicketIds().clear();
+
+            // Delete all existing tickets
+            deleteUnassignedTickets(existingEvent);
+
+            // Regenerate tickets with the new maxParticipants value
+            createUnassignedTickets(existingEvent);
+        }
+
+        // Process pending speaker requests if any
         if (updatedEvent.getPendingSpeakerRequests() != null && !updatedEvent.getPendingSpeakerRequests().isEmpty()) {
             List<User> newPendingRequests = new ArrayList<>();
             for (User speakerRequest : updatedEvent.getPendingSpeakerRequests()) {
@@ -131,25 +147,27 @@ public class EventService {
                                 .type(MediaType.APPLICATION_JSON)
                                 .build());
                     }
-                    // Check if a speaker request already exists for this user and event
+
                     if (checkIfSpeakerRequestExists(speaker.getEmail(), existingEvent.getId())) {
-                        throw new WebApplicationException(
-                                Response.status(Response.Status.BAD_REQUEST)
-                                        .entity("{\"error\":\"A speaker request already exists\"}")
-                                        .type(MediaType.APPLICATION_JSON)
-                                        .build()
-                        );
+                        throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                                .entity("{\"error\":\"A speaker request already exists\"}")
+                                .type(MediaType.APPLICATION_JSON)
+                                .build());
                     }
 
                     addSpeakerToEvent(speaker, existingEvent.getId());
                     newPendingRequests.add(speakerRequest);
                 }
             }
-            // Ensure the event stores pending speaker requests
             existingEvent.setPendingSpeakerRequests(newPendingRequests);
         }
+
+        // Persist the updated event
+        eventRepository.updateEvent(existingEvent);
+
         return existingEvent;
     }
+
 
     public boolean checkIfSpeakerRequestExists(String speakerEmail, ObjectId eventId) {
         return speakerInboxRepository.existsBySpeakerEmailAndEventId(speakerEmail, eventId);
