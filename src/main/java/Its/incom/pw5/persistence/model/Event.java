@@ -1,6 +1,7 @@
 package Its.incom.pw5.persistence.model;
 
 import Its.incom.pw5.persistence.model.enums.EventStatus;
+import Its.incom.pw5.persistence.model.enums.EventSubscription;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.types.ObjectId;
 
@@ -19,10 +20,20 @@ public class Event {
     private String host;
     private String title;
     private EventStatus status;
+    private EventSubscription EventSubscription;
     private List<User> pendingSpeakerRequests;
     private int maxPartecipants;
     private int registerdPartecipants;
     private List<ObjectId> ticketIds;
+
+
+    public Its.incom.pw5.persistence.model.enums.EventSubscription getEventSubscription() {
+        return EventSubscription;
+    }
+
+    public void setEventSubscription(Its.incom.pw5.persistence.model.enums.EventSubscription eventSubscription) {
+        EventSubscription = eventSubscription;
+    }
 
     public List<User> getPendingSpeakerRequests() {
         return pendingSpeakerRequests;

@@ -64,6 +64,7 @@ public class EventService {
         newEvent.setTopics(new ArrayList<>(event.getTopics())); // Ensure list copy
         newEvent.setTitle(event.getTitle());
         newEvent.setStatus(event.getStatus());
+        newEvent.setEventSubscription(event.getEventSubscription());
         newEvent.setMaxPartecipants(event.getMaxPartecipants());
         newEvent.setRegisterdPartecipants(0);
         newEvent.setSpeakers(new ArrayList<>());
@@ -222,14 +223,23 @@ public class EventService {
         if (updatedEvent.getPlace() != null) {
             existingEvent.setPlace(updatedEvent.getPlace());
         }
+        if (updatedEvent.getTitle() != null) {
+            existingEvent.setTitle(updatedEvent.getTitle());
+        }
         if (updatedEvent.getTopics() != null) {
             existingEvent.setTopics(updatedEvent.getTopics());
         }
         if (updatedEvent.getStartDate() != null) {
             existingEvent.setStartDate(updatedEvent.getStartDate());
         }
+        if (updatedEvent.getEndDate() != null) {
+            existingEvent.setEndDate(updatedEvent.getEndDate());
+        }
         if (updatedEvent.getMaxPartecipants() > 0) {
             existingEvent.setMaxPartecipants(updatedEvent.getMaxPartecipants());
+        }
+        if (updatedEvent.getEventSubscription() != null) {
+            existingEvent.setEventSubscription(updatedEvent.getEventSubscription());
         }
     }
 
