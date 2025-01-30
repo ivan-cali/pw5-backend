@@ -1,13 +1,12 @@
 package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.Event;
+import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
-import Its.incom.pw5.service.EventService;
-import Its.incom.pw5.service.MailService;
-import Its.incom.pw5.service.SessionService;
-import Its.incom.pw5.service.UserService;
+import Its.incom.pw5.service.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -24,23 +23,52 @@ public class EventResource {
     private final SessionService sessionService;
     private final UserService userService;
     private final MailService mailService;
+    private final HostService hostService;
 
-    public EventResource(EventService eventService, SessionService sessionService, UserService userService, MailService mailService) {
+    public EventResource(EventService eventService, SessionService sessionService, UserService userService, MailService mailService, HostService hostService) {
         this.eventService = eventService;
         this.sessionService = sessionService;
         this.userService = userService;
         this.mailService = mailService;
+        this.hostService = hostService;
     }
 
     @POST
-    public Response createEvent(Event event) {
+    public Response createEvent(@CookieParam("SESSION_ID") String sessionId, Event event) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+
+        String email;
+
+        // Check if session provides a User with admin role
+        User user = userService.getUserById(session.getUserId());
+        if (user != null && user.getRole() == Role.ADMIN) {
+            email = user.getEmail();
+        } else {
+            // Check if sessions provides a Host
+            Host host = hostService.getHostById(session.getUserId());
+            if (host != null) {
+                email = host.getEmail();
+            } else {
+                return Response.status(Response.Status.UNAUTHORIZED).entity("User is neither an Admin nor a Host.").build();
+            }
+        }
+
+
         if (event == null) {
             // Return a bad request if no event data was provided
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event body is required.").build();
         }
 
-        Event createdEvent = eventService.createEvent(event);
+        Event createdEvent = eventService.createEvent(event, email);
         return Response.status(Response.Status.CREATED).entity(createdEvent).build();
     }
 

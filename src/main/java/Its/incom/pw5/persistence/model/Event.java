@@ -16,7 +16,7 @@ public class Event {
     private String place;
     private List<User> speakers;
     private List<String> topics;
-    private List<Host> hosts;
+    private String host;
     private String title;
     private EventStatus status;
     private List<User> pendingSpeakerRequests;
@@ -87,12 +87,12 @@ public class Event {
         this.topics = topics;
     }
 
-    public List<Host> getHosts() {
-        return hosts;
+    public String getHost() {
+        return host;
     }
 
-    public void setHosts(List<Host> hosts) {
-        this.hosts = hosts;
+    public void setHost(String host) {
+        this.host = host;
     }
 
     public String getTitle() {
@@ -132,11 +132,11 @@ public class Event {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Event event = (Event) o;
-        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(hosts, event.hosts) && Objects.equals(title, event.title) && status == event.status && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests) && Objects.equals(ticketIds, event.ticketIds);
+        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(host, event.host) && Objects.equals(title, event.title) && status == event.status && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests) && Objects.equals(ticketIds, event.ticketIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, startDate, endDate, place, speakers, topics, hosts, title, status, pendingSpeakerRequests, maxPartecipants, registerdPartecipants, ticketIds);
+        return Objects.hash(id, startDate, endDate, place, speakers, topics, host, title, status, pendingSpeakerRequests, maxPartecipants, registerdPartecipants, ticketIds);
     }
 }

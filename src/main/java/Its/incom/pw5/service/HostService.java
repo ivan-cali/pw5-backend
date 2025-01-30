@@ -122,7 +122,7 @@ public class HostService {
     }
 
     public Host findHostRequst(ObjectId id) {
-        return hostRepository.findById(id);
+        return hostRepository.getById(id);
     }
 
     public void update(Host newHost, String generatedPsw) {
@@ -143,5 +143,9 @@ public class HostService {
 
     public Host getHostByUserCreatorEmail(String userCreatorEmail){
         return hostRepository.getByUserCreatorEmail(userCreatorEmail);
+    }
+
+    public Host getHostById(String hostId) {
+        return hostRepository.getById(new ObjectId(hostId));
     }
 }

@@ -38,7 +38,7 @@ public class EventService {
         this.speakerInboxRepository = speakerInboxRepository;
     }
 
-    public Event createEvent(Event event) {
+    public Event createEvent(Event event, String CreatorEmail) {
         if (event.getStartDate().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Cannot create an event with a past date.");
         }
@@ -61,7 +61,7 @@ public class EventService {
         newEvent.setMaxPartecipants(event.getMaxPartecipants());
         newEvent.setRegisterdPartecipants(0);
         newEvent.setSpeakers(new ArrayList<>());
-        newEvent.setHosts(new ArrayList<>()); // TODO: Implement hosts
+        newEvent.setHost(CreatorEmail);
         newEvent.setTicketIds(new ArrayList<>());
         newEvent.setPendingSpeakerRequests(
                 event.getPendingSpeakerRequests() != null ? new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
