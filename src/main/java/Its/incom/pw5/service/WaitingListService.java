@@ -37,4 +37,12 @@ public class WaitingListService {
     public WaitingList getWaitingListByEventId(ObjectId id) {
         return waitingListRepository.getWaitingListByEventId(id);
     }
+
+    public void updateWaitingList(WaitingList waitingList) {
+        waitingListRepository.updateWaitingList(waitingList);
+    }
+
+    public void deleteWaitingList(WaitingList waitingList) {
+        waitingListRepository.deleteWaitingList(waitingList);
+    }
 }

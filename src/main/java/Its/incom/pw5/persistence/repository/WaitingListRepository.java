@@ -19,4 +19,12 @@ public class WaitingListRepository implements PanacheMongoRepository<WaitingList
     public WaitingList getWaitingListByEventId(ObjectId id) {
         return find("eventId", id).firstResult();
     }
+
+    public void updateWaitingList(WaitingList waitingList) {
+        update(waitingList);
+    }
+
+    public void deleteWaitingList(WaitingList waitingList) {
+        delete(waitingList);
+    }
 }

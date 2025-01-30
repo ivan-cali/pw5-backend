@@ -27,13 +27,15 @@ public class EventService {
     private final UserService userService;
     private final SpeakerInboxRepository speakerInboxRepository;
     private final WaitingListService waitingListService;
+    private final MailService mailService;
 
-    public EventService(EventRepository eventRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository, WaitingListService waitingListService) {
+    public EventService(EventRepository eventRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository, WaitingListService waitingListService, MailService mailService) {
         this.eventRepository = eventRepository;
         this.topicService = topicService;
         this.userService = userService;
         this.speakerInboxRepository = speakerInboxRepository;
         this.waitingListService = waitingListService;
+        this.mailService = mailService;
     }
 
     public Event createEvent(Event event) {
@@ -215,10 +217,12 @@ public class EventService {
         // Log successful request
         System.out.println("Speaker request created for: " + fullSpeaker.getEmail());
     }
+
     public void onStartup(@Observes StartupEvent event) {
         System.out.println("Application started, running archivePastEvents now...");
         archivePastEvents();
     }
+
     @Scheduled(cron = "0 0 0 * * ?")
     public void archivePastEvents() {
         System.out.println("Scheduled task 'archivePastEvents' started at: " + LocalDateTime.now());
@@ -303,20 +307,28 @@ public class EventService {
             // Get the waiting list
             WaitingList waitingList = waitingListService.getWaitingListByEventId(existingEvent.getId());
 
+            // Check if the user is already on the waiting list
+            if (waitingList.getWaitingUsers().contains(user.getEmail())) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity("User is already on the waiting list.").build());
+            }
+
             // Add the user to the waiting list
             waitingListService.addUserToWaitingList(waitingList, user);
 
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Event is full. User has been added to the waiting list.").build());
+        } else {
+            // TODO: Generate a ticket for the user (if the event has unlimited capacity) or take a ticket from the event's capacity
+
+            // Add the user to the event
+            existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
+            user.getUserDetails().getBookedEvents().add(existingEvent);
+
+            // Persist the updated event and user
+            eventRepository.updateEvent(existingEvent);
+            userService.updateUserBookedEvents(user);
         }
-
-        // Add the user to the event
-        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
-        user.getUserDetails().getBookedEvents().add(existingEvent);
-
-        // Persist the updated event and user
-        eventRepository.updateEvent(existingEvent);
-        userService.updateUserBookedEvents(user);
     }
 
     public void checkAndRevokeEvent(Event event, User user) {
@@ -332,7 +344,10 @@ public class EventService {
                         .entity("Event not found.").build()));
 
         // Check if the user has already booked the event
-        if (!user.getUserDetails().getBookedEvents().contains(existingEvent)) {
+        boolean isEventBooked = user.getUserDetails().getBookedEvents().stream()
+                .anyMatch(bookedEvent -> bookedEvent.getId().equals(existingEvent.getId()));
+
+        if (!isEventBooked) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("User has not booked this event.").build());
         }
@@ -355,6 +370,45 @@ public class EventService {
             }
         }
         user.getUserDetails().setBookedEvents(bookedEvents);
+
+        // TODO: Remove the ticket from the user's ticket list
+        // TODO: Generate a new ticket if the event has limited capacity, if not, do nothing
+
+        // Check if the event is full. If the event is full, check if it has a waitng list and add the first user to the event
+        if (existingEvent.getMaxPartecipants() > 0 && existingEvent.getRegisterdPartecipants() < existingEvent.getMaxPartecipants()) {
+            // Check if the waiting list already exists
+            WaitingList waitingList = waitingListService.getWaitingListByEventId(existingEvent.getId());
+
+            // Check if the waiting list is not empty
+            if (waitingList != null && !waitingList.getWaitingUsers().isEmpty()) {
+                // Get the first user from the waiting list
+                User firstUser = userService.getUserByEmail(waitingList.getWaitingUsers().get(0));
+
+                // Remove the user from the waiting list
+                waitingList.getWaitingUsers().remove(firstUser.getEmail());
+
+                // Delete the waiting list if it's empty
+                if (waitingList.getWaitingUsers().isEmpty()) {
+                    waitingListService.deleteWaitingList(waitingList);
+                }
+
+                // Add the user to the event
+                existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
+                firstUser.getUserDetails().getBookedEvents().add(existingEvent);
+                // TODO: Give the user a ticket
+
+                // Persist the updated waiting list
+                waitingListService.updateWaitingList(waitingList);
+
+                // Persist the updated event and user
+                eventRepository.updateEvent(existingEvent);
+                userService.updateUserBookedEvents(firstUser);
+                // TODO: Update the user's ticket list
+
+                // Email the user
+                mailService.sendBookingConfirmationMailToWaitingUser(firstUser.getEmail(), existingEvent);
+            }
+        }
 
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
