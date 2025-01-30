@@ -12,7 +12,7 @@ public class Ticket {
     private ObjectId id;
     private ObjectId userId;
     private ObjectId eventId;
-    private final String ticketCode;
+    private String ticketCode;
     private TicketStatus status;
 
     // No-argument constructor
@@ -32,6 +32,10 @@ public class Ticket {
 
     public String getTicketCode() {
         return ticketCode;
+    }
+
+    public void setTicketCode(String ticketCode) {
+        this.ticketCode = ticketCode;
     }
 
     public ObjectId getId() {

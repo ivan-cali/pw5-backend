@@ -4,6 +4,8 @@ import Its.incom.pw5.persistence.model.Ticket;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.UUID;
+
 @ApplicationScoped
 public class TicketRepository implements PanacheMongoRepository<Ticket> {
 
@@ -40,4 +42,10 @@ public class TicketRepository implements PanacheMongoRepository<Ticket> {
         delete(ticket);
         return true;
     }
-}
+
+    public void refreshTicketCode(Ticket existingTicket) {
+            existingTicket.setTicketCode(UUID.randomUUID().toString());
+            update(existingTicket);
+        }
+    }
+

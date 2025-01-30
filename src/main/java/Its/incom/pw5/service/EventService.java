@@ -432,6 +432,14 @@ public class EventService {
         if (ticketToUpdate != null) {
             // Nullify the user ID to revoke the ticket's assignment
             ticketRepository.nullifyUserId(ticketToUpdate);
+            Ticket existingTicket = ticketRepository.findByIdOptional(ticketToUpdate.getId())
+                    .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                            .entity("Ticket not found with ID: " + ticketToUpdate.getId())
+                            .build()));
+
+
+            // Refresh the ticket code
+            ticketRepository.refreshTicketCode(existingTicket);
 
             // Remove the ticket ID from the event's ticketIds list
             existingEvent.getTicketIds().remove(ticketToUpdate.getId());
@@ -447,7 +455,6 @@ public class EventService {
         user.getUserDetails().getBookedTickets().removeIf(ticket ->
                 ticket.getId().equals(ticketToUpdate.getId())
         );
-
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUserBookedEvents(user);
