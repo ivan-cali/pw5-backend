@@ -12,6 +12,7 @@ import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
@@ -235,6 +236,7 @@ public class EventService {
         System.out.println("Application started, running archivePastEvents now...");
         archivePastEvents();
     }
+    @Transactional
     @Scheduled(cron = "0 0 0 * * ?")
     public void archivePastEvents() {
         System.out.println("Scheduled task 'archivePastEvents' started at: " + LocalDateTime.now());
@@ -255,12 +257,51 @@ public class EventService {
 
                 // Remove all related SpeakerInbox entries
                 removeRelatedSpeakerInboxes(event.getId());
+
+                deleteUnassignedTickets(event);
             }
         } else {
             System.out.println("No events to archive at this time.");
         }
 
         System.out.println("Scheduled task 'archivePastEvents' completed at: " + LocalDateTime.now());
+    }
+
+    private void deleteUnassignedTickets(Event event) {
+        List<Ticket> unassignedTickets = ticketRepository.find(
+                "{ 'eventId' : ?1, 'userId' : null }", event.getId()
+        ).list();
+
+        System.out.println("Found " + unassignedTickets.size() + " unassigned ticket(s) for event '" + event.getTitle() + "'");
+
+        if (!unassignedTickets.isEmpty()) {
+            List<ObjectId> deletedTicketIds = new ArrayList<>();
+            for (Ticket ticket : unassignedTickets) {
+                System.out.println("Attempting to delete ticket with ID: " + ticket.getId());
+                // Delete the ticket using deleteEmptyTicket
+                boolean deleted = ticketRepository.deleteEmptyTicket(ticket);
+                if (deleted) {
+                    System.out.println("Successfully deleted unassigned ticket with ID: " + ticket.getId());
+                    deletedTicketIds.add(ticket.getId());
+                } else {
+                    System.err.println("Failed to delete unassigned ticket with ID: " + ticket.getId());
+                }
+            }
+
+            // Remove the deleted ticket IDs from the event's ticketIds list
+            if (event.getTicketIds() != null && !event.getTicketIds().isEmpty()) {
+                System.out.println("Removing deleted ticket IDs from event's ticketIds list.");
+                boolean removed = event.getTicketIds().removeAll(deletedTicketIds);
+                if (removed) {
+                    eventRepository.updateEvent(event);
+                    System.out.println("Updated event '" + event.getTitle() + "' by removing " + deletedTicketIds.size() + " unassigned ticket(s).");
+                } else {
+                    System.err.println("No matching ticket IDs found in event's ticketIds list for event: " + event.getTitle());
+                }
+            }
+        } else {
+            System.out.println("No unassigned tickets to delete for event: " + event.getTitle());
+        }
     }
 
 

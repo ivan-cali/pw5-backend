@@ -36,4 +36,8 @@ public class TicketRepository implements PanacheMongoRepository<Ticket> {
 
         update(existingTicket);
     }
+    public boolean deleteEmptyTicket(Ticket ticket) {
+        delete(ticket);
+        return true;
+    }
 }
