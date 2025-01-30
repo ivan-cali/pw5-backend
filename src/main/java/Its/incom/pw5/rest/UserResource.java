@@ -36,6 +36,7 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     public List<User> getUsers(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build());
         }
 
         Session session = sessionService.getSession(sessionId);
@@ -290,5 +291,22 @@ public class UserResource {
     }
 
     //Get all user favourite topic
+    @GET
+    @Path("/favourite-topic")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getUserFavouriteTopics(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
 
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        List<Topic> userFavouriteTopics = user.getUserDetails().getFavouriteTopics();
+        return Response.ok(userFavouriteTopics).build();
+    }
 }
