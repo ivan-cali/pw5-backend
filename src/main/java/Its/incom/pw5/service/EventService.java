@@ -113,6 +113,12 @@ public class EventService {
         // Update editable fields
         updateEditableFields(existingEvent, updatedEvent);
 
+        // if the event is confirmed cannot edit
+        if (existingEvent.getStatus() == EventStatus.CONFIRMED) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Cannot edit a confirmed event.").build());
+        }
+
         // Process pending speaker requests properly
         if (updatedEvent.getPendingSpeakerRequests() != null && !updatedEvent.getPendingSpeakerRequests().isEmpty()) {
             List<User> newPendingRequests = new ArrayList<>();
