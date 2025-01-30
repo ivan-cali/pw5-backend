@@ -25,4 +25,12 @@ public class SpeakerInboxRepository implements PanacheMongoRepository<SpeakerInb
     public List<SpeakerInbox> findBySpeakerEmail(String email) {
         return find("speakerEmail", email).list();
     }
+
+    public void deleteRequest(ObjectId inboxId) {
+        deleteById(inboxId);
+    }
+
+    public List<SpeakerInbox> getRequestsByEventId(ObjectId id) {
+        return find("eventId", id).list();
+    }
 }

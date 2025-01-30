@@ -5,7 +5,6 @@ import Its.incom.pw5.persistence.model.enums.EventStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
 import Its.incom.pw5.persistence.model.enums.TicketStatus;
-import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
 import Its.incom.pw5.persistence.repository.TicketRepository;
@@ -21,6 +20,7 @@ import org.bson.types.ObjectId;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @ApplicationScoped
 public class EventService {
@@ -331,19 +331,16 @@ public class EventService {
 
     private void removeRelatedSpeakerInboxes(ObjectId eventId) {
         // Fetch all related SpeakerInbox entries for the event
-        List<SpeakerInbox> relatedInboxes = speakerInboxRepository.find(
-                "eventId", eventId
-        ).list();
+        List<SpeakerInbox> relatedInboxes = speakerInboxRepository.getRequestsByEventId(eventId);
 
         if (!relatedInboxes.isEmpty()) {
             for (SpeakerInbox inbox : relatedInboxes) {
-                speakerInboxRepository.delete(inbox);
+                speakerInboxRepository.deleteRequest(inbox.getId());
                 System.out.println("Deleted SpeakerInbox entry for speaker: " + inbox.getSpeakerEmail());
             }
         } else {
             System.out.println("No SpeakerInbox entries found for event ID: " + eventId);
         }
-
     }
 
     public void checkAndBookEvent(Event event, User user) {
@@ -435,7 +432,7 @@ public class EventService {
 
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
-        userService.updateUserBookedEvents(user);
+        userService.updateUser(user);
         updateRegisteredParticipants();
     }
 
@@ -543,7 +540,7 @@ public class EventService {
 
                 // Persist the updated event and user
                 eventRepository.updateEvent(existingEvent);
-                userService.updateUserBookedEvents(firstUser);
+                userService.updateUser(firstUser);
 
                 // Email the user
                 mailService.sendBookingConfirmationMailToWaitingUser(firstUser.getEmail(), existingEvent);
@@ -552,7 +549,7 @@ public class EventService {
 
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
-        userService.updateUserBookedEvents(user);
+        userService.updateUser(user);
         updateRegisteredParticipants();
     }
 
@@ -623,5 +620,88 @@ public class EventService {
 
     public List<Event> getAllEvents() {
         return eventRepository.getAllEvents();
+    }
+
+    public void deleteEvent(ObjectId id, Host host) {
+        // Check if the event exists
+        Event event = eventRepository.findByIdOptional(id)
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity("Event not found.").build()));
+
+        // Check if the host is authorized to delete the event
+        if (!Objects.equals(event.getHost(), host.getCreatedBy())) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not authorized to delete this event.").build());
+        }
+
+        // Remove the event from host both programmed (if CONFIRMED) and past (if ARCHIVED) events
+        host.getProgrammedEvents().removeIf(programmedEvent ->
+                programmedEvent.getId().equals(event.getId()));
+        host.getPastEvents().removeIf(pastEvent ->
+                pastEvent.getId().equals(event.getId()));
+
+        // Remove the event from user both booked events (if CONFIRMED) and past events (if ARCHIVED)
+        List<String> userEmailsToNotify = new ArrayList<>();
+        for (User user : userService.getAllUsers()) {
+            user.getUserDetails().getBookedEvents().removeIf(bookedEvent ->
+                    bookedEvent.getId().equals(event.getId()));
+            user.getUserDetails().getArchivedEvents().removeIf(archivedEvent ->
+                    archivedEvent.getId().equals(event.getId()));
+            userEmailsToNotify.add(user.getEmail());
+            userService.updateUser(user);
+        }
+
+        // Remove the ticket from user's booked tickets
+        for (User user : userService.getAllUsers()) {
+            user.getUserDetails().getBookedTickets().removeIf(ticket ->
+                    ticket.getEventId().equals(event.getId()));
+            userService.updateUser(user);
+        }
+
+        // Remove waiting list if it exists
+        WaitingList waitingList = waitingListService.getWaitingListByEventId(event.getId());
+        List<String> waitingUserEmailsToNotify = new ArrayList<>();
+        if (waitingList != null) {
+            waitingUserEmailsToNotify = waitingList.getWaitingUsers();
+            waitingListService.deleteWaitingList(waitingList);
+        }
+
+        // Remove event tickets from the database
+        for (ObjectId ticketIds : event.getTicketIds()) {
+            Ticket ticket = ticketRepository.findByIdOptional(ticketIds)
+                    .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                            .entity("Ticket not found.").build()));
+            ticketRepository.delete(ticket);
+        }
+
+        // Remove speaker both inbox requests for the event and from the event
+        List<String> speakerEmailsToNotify = new ArrayList<>();
+
+        List<SpeakerInbox> relatedInboxes = speakerInboxRepository.getRequestsByEventId(event.getId());
+
+        if (!relatedInboxes.isEmpty()) {
+            for (SpeakerInbox inbox : relatedInboxes) {
+                speakerEmailsToNotify.add(inbox.getSpeakerEmail());
+            }
+        }
+
+        removeRelatedSpeakerInboxes(event.getId());
+
+        // Remove the event from the database
+        eventRepository.deleteEvent(event);
+
+        // Notify users and speakers who booked the event that it has been deleted
+        for (String userEmail : userEmailsToNotify) {
+            mailService.sendEventDeletedMailToUser(userEmail, event);
+        }
+
+        for (String waitingUserEmail : waitingUserEmailsToNotify) {
+            mailService.sendEventDeletedMailToWaitingUser(waitingUserEmail, event);
+        }
+
+        for (String speakerEmail : speakerEmailsToNotify) {
+            mailService.sendEventDeletedMailToSpeaker(speakerEmail, event);
+        }
+
     }
 }

@@ -71,9 +71,7 @@ public class UserService {
         return userRepository.findUsersByFullName(s);
     }
 
-    public void updateUserBookedEvents(User user) {
+    public void updateUser(User user) {
         userRepository.updateUser(user);
     }
-
-    public void updateUserFavouriteTopics(User user) { userRepository.update(user); }
 }

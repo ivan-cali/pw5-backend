@@ -13,7 +13,6 @@ import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @ApplicationScoped
 public class TopicService {
@@ -72,7 +71,7 @@ public class TopicService {
         favouriteTopics.add(topic);
         userDetails.setFavouriteTopics(favouriteTopics);
         user.setUserDetails(userDetails);
-        userService.updateUserFavouriteTopics(user);
+        userService.updateUser(user);
     }
 
     public void removeFavouriteTopic(User user, Topic topic) {
@@ -91,7 +90,7 @@ public class TopicService {
             }
         }
         user.getUserDetails().setFavouriteTopics(userFavouriteTopics);
-        userService.updateUserFavouriteTopics(user);
+        userService.updateUser(user);
     }
 
 }

@@ -104,4 +104,8 @@ public class SpeakerInboxService {
         // Fetch and return the SpeakerInbox requests for this email
         return speakerInboxRepository.findBySpeakerEmail(userEmail);
     }
+
+    public void deleteRequest(ObjectId inboxId) {
+        speakerInboxRepository.deleteRequest(inboxId);
+    }
 }
