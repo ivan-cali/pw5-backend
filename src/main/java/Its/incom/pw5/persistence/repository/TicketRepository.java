@@ -1,6 +1,7 @@
 package Its.incom.pw5.persistence.repository;
 
 import Its.incom.pw5.persistence.model.Ticket;
+import Its.incom.pw5.persistence.model.enums.TicketStatus;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -42,10 +43,23 @@ public class TicketRepository implements PanacheMongoRepository<Ticket> {
         delete(ticket);
         return true;
     }
+    public void confirmTicket(Ticket ticket) {
+        Ticket existingTicket = findByIdOptional(ticket.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found with ID: " + ticket.getId()));
+
+        existingTicket.setStatus(TicketStatus.valueOf("CONFIRMED"));
+
+        update(existingTicket);
+    }
+
+    public Ticket findByTicketCode(String ticketCode) {
+        return find("ticketCode", ticketCode).firstResult();
+    }
 
     public void refreshTicketCode(Ticket existingTicket) {
             existingTicket.setTicketCode(UUID.randomUUID().toString());
             update(existingTicket);
         }
-    }
 
+
+}
