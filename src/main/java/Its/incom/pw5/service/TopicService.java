@@ -93,4 +93,11 @@ public class TopicService {
         userService.updateUser(user);
     }
 
+    public Topic findTopicByName(String topicName) {
+        return topicRepository.findByName(topicName);
+    }
+
+    public List<Topic> getAllTopics() {
+        return topicRepository.getAll();
+    }
 }

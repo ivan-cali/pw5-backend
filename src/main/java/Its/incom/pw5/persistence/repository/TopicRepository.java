@@ -23,4 +23,8 @@ public class TopicRepository implements PanacheMongoRepository<Topic> {
     public boolean isAlreadyAFavourite(List<Topic> favouriteTopics, ObjectId topicId){
         return favouriteTopics.stream().anyMatch(topic -> topic.getId().equals(topicId));
     }
+
+    public List<Topic> getAll() {
+        return listAll();
+    }
 }
