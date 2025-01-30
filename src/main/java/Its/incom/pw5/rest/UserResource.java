@@ -1,9 +1,6 @@
 package Its.incom.pw5.rest;
 
-import Its.incom.pw5.persistence.model.AdminNotification;
-import Its.incom.pw5.persistence.model.Host;
-import Its.incom.pw5.persistence.model.Session;
-import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.NotificationStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
@@ -21,17 +18,18 @@ import java.util.UUID;
 public class UserResource {
     private final UserService userService;
     private final SessionService sessionService;
-
     private final HostService hostService;
     private final MailService mailService;
     private final NotificationService notificationService;
+    private final TopicService topicService;
 
-    public UserResource(UserService userService, SessionService sessionService, HostService hostService, MailService mailService, NotificationService notificationService) {
+    public UserResource(UserService userService, SessionService sessionService, HostService hostService, MailService mailService, NotificationService notificationService, TopicService topicService) {
         this.userService = userService;
         this.sessionService = sessionService;
         this.hostService = hostService;
         this.mailService = mailService;
         this.notificationService = notificationService;
+        this.topicService = topicService;
     }
 
     @GET
@@ -239,5 +237,76 @@ public class UserResource {
         notificationService.update(notification);
 
         return Response.ok().build();
+    }
+
+    //Add a topic to user favourite topic list
+    @PUT
+    @Path("/favourite-topic/add/{topicId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response addFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+
+        Topic topic = topicService.getTopicById(topicId);
+        if (topic == null) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Topic not found.").build();
+        }
+
+        topicService.addFavouriteTopic(user, topic);
+        return Response.ok().entity(topic.getName() + " added to favourite topics.").build();
+    }
+
+    //Remove a topic to user favourite topic list
+    @PUT
+    @Path("/favourite-topic/remove/{topicId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response removeFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        Topic topic = topicService.getTopicById(topicId);
+        if (topic == null){
+            return Response.status(Response.Status.NOT_FOUND).entity("Topic not found.").build();
+        }
+
+        topicService.removeFavouriteTopic(user, topic);
+        return Response.ok().entity(topic.getName() + " removed from favourite topics.").build();
+    }
+
+    //Get all user favourite topic
+    @GET
+    @Path("/favourite-topic")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getUserFavouriteTopics(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        List<Topic> userFavouriteTopics = user.getUserDetails().getFavouriteTopics();
+        return Response.ok(userFavouriteTopics).build();
     }
 }

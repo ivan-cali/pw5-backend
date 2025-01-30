@@ -78,4 +78,6 @@ public class UserService {
     public void updateUserBookedEvents(User user) {
         userRepository.updateUser(user);
     }
+
+    public void updateUserFavouriteTopics(User user) { userRepository.update(user); }
 }
