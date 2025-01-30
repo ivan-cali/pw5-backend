@@ -4,6 +4,7 @@ import Its.incom.pw5.persistence.model.Ticket;
 import Its.incom.pw5.persistence.model.enums.TicketStatus;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.bson.types.ObjectId;
 
 import java.util.UUID;
 
@@ -62,4 +63,7 @@ public class TicketRepository implements PanacheMongoRepository<Ticket> {
         }
 
 
+    public void deleteTicket(Ticket existingTicket) {
+        delete(existingTicket);
+    }
 }
