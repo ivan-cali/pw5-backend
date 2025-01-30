@@ -1,6 +1,5 @@
 package Its.incom.pw5.service;
 
-import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.WaitingList;
 import Its.incom.pw5.persistence.repository.WaitingListRepository;
@@ -22,13 +21,13 @@ public class WaitingListService {
         waitingListRepository.addUserToWaitingList(waitingList);
     }
 
-    public void checkAndCreateWaitingList(Event existingEvent) {
+    public void checkAndCreateWaitingList(ObjectId existingEventId) {
         // Check if the waiting list already exists
-        WaitingList waitingList = waitingListRepository.findById(existingEvent.getId());
+        WaitingList waitingList = waitingListRepository.getWaitingListByEventId(existingEventId);
         if (waitingList == null) {
             // Create a new waiting list
             waitingList = new WaitingList();
-            waitingList.setEventId(existingEvent.getId());
+            waitingList.setEventId(existingEventId);
             waitingList.setWaitingUsers(new ArrayList<>());
             waitingListRepository.addWaitingList(waitingList);
         }
