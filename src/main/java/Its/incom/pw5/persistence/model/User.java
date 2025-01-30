@@ -79,4 +79,6 @@ public class User {
     public void setUserDetails(UserDetails userDetails) {
         this.userDetails = userDetails;
     }
+
+
 }

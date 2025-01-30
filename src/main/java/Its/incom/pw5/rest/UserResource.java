@@ -36,7 +36,6 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     public List<User> getUsers(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build());
         }
 
         Session session = sessionService.getSession(sessionId);
@@ -262,10 +261,34 @@ public class UserResource {
         }
 
         topicService.addFavouriteTopic(user, topic);
-        return Response.ok().entity("Topic " + topic.getName() + " added to favourite topics.").build();
+        return Response.ok().entity(topic.getName() + " added to favourite topics.").build();
     }
 
     //Remove a topic to user favourite topic list
+    @PUT
+    @Path("/favourite-topic/remove/{topicId}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response removeFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        Topic topic = topicService.getTopicById(topicId);
+        if (topic == null){
+            return Response.status(Response.Status.NOT_FOUND).entity("Topic not found.").build();
+        }
+
+        topicService.removeFavouriteTopic(user, topic);
+        return Response.ok().entity(topic.getName() + " removed from favourite topics.").build();
+    }
 
     //Get all user favourite topic
+
 }
