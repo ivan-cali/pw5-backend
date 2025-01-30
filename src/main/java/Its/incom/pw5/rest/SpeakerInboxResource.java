@@ -1,6 +1,7 @@
 package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.SpeakerInbox;
+import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
 import Its.incom.pw5.service.SpeakerInboxService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -47,14 +48,14 @@ public class SpeakerInboxResource {
     }
     @GET
     @Path("/my-requests")
-    public Response getMyRequests(@CookieParam("SESSION_ID") String sessionCookie) {
+    public Response getMyRequests(@CookieParam("SESSION_ID") String sessionCookie, @QueryParam("requestStatus") SpeakerInboxStatus requestStatus) {
         try {
             if (sessionCookie == null || sessionCookie.isBlank()) {
                 throw new WebApplicationException("Session cookie is required", 401);
             }
 
             // Get all requests for the current user
-            List<SpeakerInbox> userRequests = speakerInboxService.getRequestsForUser(sessionCookie);
+            List<SpeakerInbox> userRequests = speakerInboxService.getRequestsForUser(sessionCookie, requestStatus);
 
             return Response.ok(userRequests).build();
         } catch (WebApplicationException ex) {

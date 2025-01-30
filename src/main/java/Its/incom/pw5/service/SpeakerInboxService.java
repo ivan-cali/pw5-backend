@@ -93,7 +93,7 @@ public class SpeakerInboxService {
         return inbox;
     }
 
-    public List<SpeakerInbox> getRequestsForUser(String sessionCookie) {
+    public List<SpeakerInbox> getRequestsForUser(String sessionCookie, SpeakerInboxStatus requestStatus) {
         // Retrieve the user's email from the session cookie
         String userEmail = sessionService.findEmailBySessionCookie(sessionCookie);
 
@@ -101,8 +101,13 @@ public class SpeakerInboxService {
             throw new IllegalArgumentException("Invalid session or user email not found.");
         }
 
-        // Fetch and return the SpeakerInbox requests for this email
-        return speakerInboxRepository.findBySpeakerEmail(userEmail);
+        if (requestStatus == null) {
+            // Fetch and return the SpeakerInbox requests for this email
+            return speakerInboxRepository.findBySpeakerEmail(userEmail);
+        } else {
+            // Fetch and return the SpeakerInbox requests filtered by the requests status for this email
+            return speakerInboxRepository.getRequestsByStatus(requestStatus);
+        }
     }
 
     public void deleteRequest(ObjectId inboxId) {

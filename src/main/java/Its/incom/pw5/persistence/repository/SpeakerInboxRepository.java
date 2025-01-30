@@ -27,8 +27,8 @@ public class SpeakerInboxRepository implements PanacheMongoRepository<SpeakerInb
         return find("speakerEmail", email).list();
     }
 
-    public boolean speakerWithConfirmedStatus(List<SpeakerInbox> speakers) {
-        return speakers.stream().anyMatch(s -> s.getStatus().equals(SpeakerInboxStatus.CONFIRMED));
+    public List<SpeakerInbox> getRequestsByStatus(SpeakerInboxStatus status) {
+        return find("status", status).list();
     }
 
     public void deleteRequest(ObjectId inboxId) {
