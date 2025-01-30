@@ -95,6 +95,4 @@ public class HostRepository implements PanacheMongoRepository<Host> {
     public Host getByUserCreatorEmail(String email){
         return find("createdBy", email).firstResult();
     }
-
-
 }

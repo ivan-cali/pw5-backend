@@ -77,7 +77,7 @@ public class UserResource {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build();
         }
 
-        userService.convertStringToObjectId(id);
+        userService.deleteUser(id);
         return Response.status(Response.Status.NO_CONTENT).build();
     }
 
