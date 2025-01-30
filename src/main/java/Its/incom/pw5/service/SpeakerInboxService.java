@@ -12,6 +12,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import org.bson.types.ObjectId;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @ApplicationScoped
@@ -47,17 +48,33 @@ public class SpeakerInboxService {
             throw new WebApplicationException("Cannot update status. Current status is not PENDING.", 400);
         }
 
+        // Fetch the related event
+        Event eventToConfirm = eventRepository.findByIdOptional(inbox.getEventId())
+                .orElseThrow(() -> new WebApplicationException("Event not found", 404));
+
+        // Check for overlapping events if the new status is CONFIRMED
+        if (newStatus == SpeakerInboxStatus.CONFIRMED) {
+            List<SpeakerInbox> confirmedRequests = speakerInboxRepository.findConfirmedRequestsByEmail(inbox.getSpeakerEmail());
+
+            for (SpeakerInbox confirmedRequest : confirmedRequests) {
+                Event confirmedEvent = eventRepository.findByIdOptional(confirmedRequest.getEventId())
+                        .orElseThrow(() -> new WebApplicationException("Event not found for confirmed request", 404));
+
+                // Check for date overlap
+                if (datesOverlap(eventToConfirm.getStartDate(), eventToConfirm.getEndDate(),
+                        confirmedEvent.getStartDate(), confirmedEvent.getEndDate())) {
+                    throw new WebApplicationException("You are already scheduled to participate in another event during this time.", 400);
+                }
+            }
+        }
+
         // Update the status and persist the changes
         inbox.setStatus(newStatus);
         speakerInboxRepository.update(inbox);
 
-        // Fetch the related event
-        Event event = eventRepository.findByIdOptional(inbox.getEventId())
-                .orElseThrow(() -> new WebApplicationException("Event not found", 404));
-
-        // Remove the speaker from pendingSpeakerRequests
-        if (event.getPendingSpeakerRequests() != null) {
-            boolean removed = event.getPendingSpeakerRequests().removeIf(pendingSpeaker ->
+        // Remove the speaker from pendingSpeakerRequests in the event
+        if (eventToConfirm.getPendingSpeakerRequests() != null) {
+            boolean removed = eventToConfirm.getPendingSpeakerRequests().removeIf(pendingSpeaker ->
                     pendingSpeaker.getEmail().equals(inbox.getSpeakerEmail()));
             if (removed) {
                 System.out.println("Speaker " + inbox.getSpeakerEmail() + " removed from pending requests.");
@@ -66,19 +83,18 @@ public class SpeakerInboxService {
 
         // If confirmed, add speaker details to the Event
         if (newStatus == SpeakerInboxStatus.CONFIRMED) {
-            // Fetch the speaker user details
             User speaker = userRepository.getUserByEmail(inbox.getSpeakerEmail());
             if (speaker == null) {
                 throw new WebApplicationException("User not found", 404);
             }
 
             // Check if the speaker is already in the list
-            boolean isAlreadyAdded = event.getSpeakers().stream()
+            boolean isAlreadyAdded = eventToConfirm.getSpeakers().stream()
                     .anyMatch(existingSpeaker -> existingSpeaker.getEmail().equals(speaker.getEmail()));
 
+            // Add the User object to the speakers list
             if (!isAlreadyAdded) {
-                // Add the User object to the speakers list
-                event.getSpeakers().add(speaker);
+                eventToConfirm.getSpeakers().add(speaker);
                 System.out.println("Speaker " + speaker.getEmail() + " added to the event.");
             } else {
                 System.out.println("Speaker " + speaker.getEmail() + " is already in the event.");
@@ -88,9 +104,13 @@ public class SpeakerInboxService {
         }
 
         // Persist the updated event
-        eventRepository.updateEvent(event);
+        eventRepository.updateEvent(eventToConfirm);
 
         return inbox;
+    }
+
+    private boolean datesOverlap(LocalDateTime start1, LocalDateTime end1, LocalDateTime start2, LocalDateTime end2) {
+        return (start1.isBefore(end2) && end1.isAfter(start2));
     }
 
     public List<SpeakerInbox> getRequestsForUser(String sessionCookie, SpeakerInboxStatus requestStatus) {

@@ -43,4 +43,9 @@ public class SpeakerInboxRepository implements PanacheMongoRepository<SpeakerInb
         return find("speakerEmail = ?1 and eventId = ?2", speakerEmail, eventId)
                 .firstResultOptional().isPresent();
     }
+
+    public List<SpeakerInbox> findConfirmedRequestsByEmail(String speakerEmail) {
+        // Query the database for all speaker inbox requests with status CONFIRMED for the given email
+        return find("speakerEmail = ?1 and status = ?2", speakerEmail, SpeakerInboxStatus.CONFIRMED).list();
+    }
 }
