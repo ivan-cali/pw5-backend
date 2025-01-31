@@ -50,21 +50,24 @@ public class EventResource {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
         }
 
-        User user = userService.getUserById(session.getUserId());
-        if (user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
-        }
-
         String hostName;
 
-        if (user.getRole() == Role.ADMIN) {
-            hostName = user.getEmail();
+        Host host = hostService.getHostById(session.getUserId());
+        if (host == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User is not an admin or host.").build();
         } else {
-            Host host = hostService.getHostByUserCreatorEmail(user.getEmail());
-            if (host == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("User is not a host.").build();
-            }
             hostName = host.getName();
+        }
+
+        User user = userService.getUserByEmail(host.getCreatedBy());
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("User not found.").build();
+        }
+
+        if (user.getRole() == Role.ADMIN) {
+            hostName = "Admin";
         }
 
         if (event == null) {
