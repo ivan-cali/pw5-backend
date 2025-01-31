@@ -8,7 +8,6 @@ import Its.incom.pw5.persistence.model.enums.TicketStatus;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
 import Its.incom.pw5.persistence.repository.TicketRepository;
-import Its.incom.pw5.persistence.repository.WaitingListRepository;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -44,7 +43,7 @@ public class EventService {
         this.mailService = mailService;
     }
 
-    public Event createEvent(Event event, String CreatorEmail) {
+    public Event createEvent(Event event, String hostName) {
         if (event.getStartDate().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Cannot create an event with a past date.");
         }
@@ -68,7 +67,7 @@ public class EventService {
         newEvent.setMaxPartecipants(event.getMaxPartecipants());
         newEvent.setRegisterdPartecipants(0);
         newEvent.setSpeakers(new ArrayList<>());
-        newEvent.setHost(CreatorEmail);
+        newEvent.setHost(hostName);
         newEvent.setTicketIds(new ArrayList<>());
         newEvent.setPendingSpeakerRequests(
                 event.getPendingSpeakerRequests() != null ? new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()

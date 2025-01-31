@@ -156,32 +156,4 @@ public class HostResource {
 
         return Response.ok(event).build();
     }
-
-
-    //update an exsisting host
-//    @PATCH
-//    @Path("/{id}/update")
-//    @Consumes(MediaType.APPLICATION_JSON)
-//    @Produces(MediaType.APPLICATION_JSON)
-//    public Response update(@CookieParam("SESSION_ID") String sessionId, @PathParam("id") ObjectId id, Map<String, Object> updates){
-//        try{
-//            //controllo sessione
-//            Host host = hostService.update(id, updates);
-//            return Response.ok().entity(host).build();
-//        } catch (HostUpdateException e){
-//            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-//        }
-//    }
-
-
-    //delete an host
-    /*@DELETE
-    @Path("{Id}/delete")
-    public Response delete(@CookieParam("SESSION_ID") Cookie sessionCookie){
-        try {
-
-        } catch ()
-    }*/
-
-
 }

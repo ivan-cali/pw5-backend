@@ -12,6 +12,7 @@ import Its.incom.pw5.service.MailService;
 import Its.incom.pw5.service.SessionService;
 import Its.incom.pw5.service.UserService;
 import Its.incom.pw5.service.*;
+import Its.incom.pw5.service.exception.HostNotFoundException;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -49,23 +50,22 @@ public class EventResource {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
         }
 
-
-        String email;
-
-        // Check if session provides a User with admin role
         User user = userService.getUserById(session.getUserId());
-        if (user != null && user.getRole() == Role.ADMIN) {
-            email = user.getEmail();
-        } else {
-            // Check if sessions provides a Host
-            Host host = hostService.getHostById(session.getUserId());
-            if (host != null) {
-                email = host.getEmail();
-            } else {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("User is neither an Admin nor a Host.").build();
-            }
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
         }
 
+        String hostName;
+
+        if (user.getRole() == Role.ADMIN) {
+            hostName = user.getEmail();
+        } else {
+            Host host = hostService.getHostByUserCreatorEmail(user.getEmail());
+            if (host == null) {
+                return Response.status(Response.Status.UNAUTHORIZED).entity("User is not a host.").build();
+            }
+            hostName = host.getName();
+        }
 
         if (event == null) {
             // Return a bad request if no event data was provided
@@ -73,7 +73,7 @@ public class EventResource {
                     .entity("Event body is required.").build();
         }
 
-        Event createdEvent = eventService.createEvent(event, email);
+        Event createdEvent = eventService.createEvent(event, hostName);
         return Response.status(Response.Status.CREATED).entity(createdEvent).build();
     }
 
