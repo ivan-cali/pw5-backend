@@ -48,7 +48,7 @@ public class SpeakerInboxResource {
     }
     @GET
     @Path("/my-requests")
-    public Response getMyRequests(@CookieParam("SESSION_ID") String sessionCookie, @QueryParam("requestStatus") SpeakerInboxStatus requestStatus) {
+    public Response getMyRequests(@CookieParam("SESSION_ID") String sessionCookie, @QueryParam("status") SpeakerInboxStatus requestStatus) {
         try {
             if (sessionCookie == null || sessionCookie.isBlank()) {
                 throw new WebApplicationException("Session cookie is required", 401);
