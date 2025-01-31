@@ -283,7 +283,7 @@ public class MailService {
                 "<p>Ciao,</p>\n" +
                 "<p>Grazie per aver creato un account come Azienda/Partner sulla nostra piattaforma.</p>\n" +
                 "<p>Per completare la registrazione, ti preghiamo di confermare il tuo account. Ti abbiamo fornito una password provvisoria, ma per completare la verifica ed ottenere l'accesso dovrai cambiarla seguendo il link qui sotto:</p>\n" +
-                "<p>Password provvisoria: " + generatedPsw + ":</p>\n" +
+                "<p>Password provvisoria: " + generatedPsw + "</p>\n" +
                 "<a href=\" " + verificationLink + "\" class=\"confirmation-button\">Conferma Account</a>\n" +
                 "<p>Se non hai richiesto questa registrazione, ignora questa email.</p>\n" +
                 "</div>\n" +

@@ -193,6 +193,9 @@ public class UserResource {
 
         Host hostRequest = hostService.findHostRequst(notification.getHostId());
         String generatedPsw = UUID.randomUUID().toString();
+
+        hostRequest.setProvvisoryPsw(generatedPsw);
+
         hostService.update(hostRequest, generatedPsw);
 
         mailService.sendHostRequestApprovalEmail(hostRequest.getEmail(), generatedPsw);
