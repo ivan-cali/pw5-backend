@@ -152,4 +152,16 @@ public class HostService {
     public void updateEvents(Host host) {
         hostRepository.updateHost(host);
     }
+
+    public boolean isPasswordMatching(String hashedPsw, String provvisoryPsw) {
+        if (hashedPsw == null || provvisoryPsw == null) {
+            return false;
+        }
+
+        // Hash the provisional password using SHA-256
+        String hashedProvvisoryPsw = hashCalculator.calculateHash(provvisoryPsw);
+
+        // Compare the stored hashed password with the newly hashed provisional password
+        return hashedPsw.equals(hashedProvvisoryPsw);
+    }
 }

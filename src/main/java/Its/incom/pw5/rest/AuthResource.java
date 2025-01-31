@@ -208,11 +208,10 @@ public class AuthResource {
                     .entity("Invalid credentials.")
                     .build();
         }
-        if (Objects.equals(host.getHashedPsw(), host.getProvvisoryPsw())) {
+        if (hostService.isPasswordMatching(host.getHashedPsw(), host.getProvvisoryPsw())) {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity("Please change your password.")
                     .build();
-
         }
 
         Session session = sessionService.createOrReuseSession(String.valueOf(validHost.getId()));
