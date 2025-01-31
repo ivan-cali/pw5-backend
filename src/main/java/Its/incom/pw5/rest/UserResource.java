@@ -22,10 +22,12 @@ public class UserResource {
     private final MailService mailService;
     private final NotificationService notificationService;
     private final TopicService topicService;
+    private final HashCalculator hashCalculator;
 
-    public UserResource(UserService userService, SessionService sessionService, HostService hostService, MailService mailService, NotificationService notificationService, TopicService topicService) {
+    public UserResource(UserService userService,HashCalculator hashCalculator, SessionService sessionService, HostService hostService, MailService mailService, NotificationService notificationService, TopicService topicService) {
         this.userService = userService;
         this.sessionService = sessionService;
+        this.hashCalculator = hashCalculator;
         this.hostService = hostService;
         this.mailService = mailService;
         this.notificationService = notificationService;
@@ -194,7 +196,8 @@ public class UserResource {
         Host hostRequest = hostService.findHostRequst(notification.getHostId());
         String generatedPsw = UUID.randomUUID().toString();
 
-        hostRequest.setProvvisoryPsw(generatedPsw);
+        String hashedPsw = hashCalculator.calculateHash(generatedPsw);
+        hostRequest.setProvvisoryPsw(hashedPsw);  // Set the hashed temporary password
 
         hostService.update(hostRequest, generatedPsw);
 

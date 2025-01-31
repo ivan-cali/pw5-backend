@@ -153,15 +153,48 @@ public class HostService {
         hostRepository.updateHost(host);
     }
 
-    public boolean isPasswordMatching(String hashedPsw, String provvisoryPsw) {
-        if (hashedPsw == null || provvisoryPsw == null) {
+    public boolean isPasswordMatching(String hashedPsw, String provvisoryPsw, String inputPassword) {
+        if (hashedPsw == null || inputPassword == null) {
             return false;
         }
 
-        // Hash the provisional password using SHA-256
-        String hashedProvvisoryPsw = hashCalculator.calculateHash(provvisoryPsw);
+        // Hash the input password
+        String hashedInputPsw = hashCalculator.calculateHash(inputPassword);
 
-        // Compare the stored hashed password with the newly hashed provisional password
-        return hashedPsw.equals(hashedProvvisoryPsw);
+        // Compare the input password with both stored passwords
+        return hashedInputPsw.equals(hashedPsw) || (provvisoryPsw != null && hashedInputPsw.equals(provvisoryPsw));
     }
+
+
+    public boolean isValidHostLogin(String email, String inputPassword) {
+        Host validHost = getHostByEmail(email);
+
+        if (validHost == null) {
+            return false;  // No host found with the provided email
+        }
+
+        // Hash the input password
+        String hashedInputPassword = hashPassword(inputPassword);
+
+        // Check if the host is still using the provisional password
+        if (validHost.getProvvisoryPsw() != null && hashedInputPassword.equals(validHost.getProvvisoryPsw())) {
+            throw new IllegalStateException("You must change your provisional password.");
+        }
+
+        // Compare with the main hashed password
+        if (!hashedInputPassword.equals(validHost.getHashedPsw())) {
+            return false;  // Incorrect password
+        }
+
+        return true;  // Login is valid
+    }
+
+    public Host getValidHost(String email) {
+        return getHostByEmail(email);
+    }
+
+    public String hashPassword(String password) {
+        return hashCalculator.calculateHash(password);
+    }
+
 }

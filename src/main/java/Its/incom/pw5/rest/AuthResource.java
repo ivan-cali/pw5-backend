@@ -200,36 +200,39 @@ public class AuthResource {
     @Path("/login-host")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response loginHost(Host host) {
-        Host validHost = hostService.getHostByEmail(host.getEmail());
+        try {
+            if (host.getEmail() == null || host.getHashedPsw() == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Email and password must be provided.")
+                        .build();
+            }
 
-        if (validHost == null) {
-            // Authentication failed
+            // Validate the login
+            if (!hostService.isValidHostLogin(host.getEmail(), host.getHashedPsw())) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("Invalid credentials.")
+                        .build();
+            }
+
+            Host validHost = hostService.getValidHost(host.getEmail());
+            Session session = sessionService.createOrReuseSession(String.valueOf(validHost.getId()));
+            String sessionCookieValue = session.getCookieValue();
+
+            NewCookie sessionCookie = new NewCookie(
+                    "SESSION_ID",
+                    sessionCookieValue,
+                    "/",
+                    null,
+                    null,
+                    (int) java.time.Duration.between(LocalDateTime.now(), session.getExpiresIn()).getSeconds(),
+                    false
+            );
+
+            return Response.ok("Host successfully logged in.").cookie(sessionCookie).build();
+        } catch (IllegalStateException e) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid credentials.")
+                    .entity(e.getMessage())
                     .build();
         }
-        if (hostService.isPasswordMatching(host.getHashedPsw(), host.getProvvisoryPsw())) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Please change your password.")
-                    .build();
-        }
-
-        Session session = sessionService.createOrReuseSession(String.valueOf(validHost.getId()));
-        String sessionCookieValue = session.getCookieValue();
-
-        NewCookie sessionCookie = new NewCookie(
-                "SESSION_ID",           // Cookie name
-                sessionCookieValue,     // Cookie value
-                "/",                    // Path
-                null,                   // Domain (null uses request domain)
-                null,                   // Comment
-                (int) java.time.Duration.between(LocalDateTime.now(), session.getExpiresIn()).getSeconds(), // Max age in seconds
-                false                   // Secure flag (true if using HTTPS)
-        );
-
-        return Response
-                .ok("Host successfully logged in.")
-                .cookie(sessionCookie)
-                .build();
     }
 }
