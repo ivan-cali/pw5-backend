@@ -29,6 +29,10 @@ public class TopicResource {
         } else {
             // Return the topic with the specified name
             Topic topic = topicService.findTopicByName(topicName);
+
+            if (topic == null) {
+                return Response.status(Response.Status.NOT_FOUND).entity("Topic with name " + topicName + " not found").build();
+            }
             return Response.ok().entity(topic).build();
         }
     }
