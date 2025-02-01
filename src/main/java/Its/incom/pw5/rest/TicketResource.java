@@ -15,6 +15,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import java.util.Map;
 
@@ -34,6 +36,8 @@ public class TicketResource {
 
     @POST
     @Path("/confirm")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response confirmTicket(
@@ -76,6 +80,8 @@ public class TicketResource {
     }
     @DELETE
     @Path("/delete")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response deleteTicket(

@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+@GlobalLog
 @ApplicationScoped
 public class EventService {
     private final EventRepository eventRepository;

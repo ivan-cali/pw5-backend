@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.UserDetails;
 import Its.incom.pw5.persistence.model.VerificationToken;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@GlobalLog
 @ApplicationScoped
 public class AuthService {
     private final AuthRepository authRepository;

@@ -8,6 +8,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import java.util.List;
 import java.util.Map;
@@ -15,6 +17,8 @@ import java.util.Map;
 @Path("/speaker-inbox")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@Counted(name = "api_calls_total", description = "Total number of API calls")
+@Timed(name = "api_call_duration", description = "Time taken to process API calls")
 public class SpeakerInboxResource {
 
     @Inject
@@ -22,6 +26,8 @@ public class SpeakerInboxResource {
 
     @PUT
     @Path("/{inboxId}/confirm")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response confirmRequest(@PathParam("inboxId") ObjectId inboxId) {
         try {
             SpeakerInbox confirmedRequest = speakerInboxService.confirmRequest(inboxId);
@@ -45,6 +51,8 @@ public class SpeakerInboxResource {
 
     @PUT
     @Path("/{inboxId}/reject")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response rejectRequest(@PathParam("inboxId") ObjectId inboxId) {
         try {
             SpeakerInbox rejectedRequest = speakerInboxService.rejectRequest(inboxId);
@@ -68,6 +76,8 @@ public class SpeakerInboxResource {
 
     @GET
     @Path("/my-requests")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getMyRequests(@CookieParam("SESSION_ID") String sessionCookie, @QueryParam("status") SpeakerInboxStatus requestStatus) {
         try {
             if (sessionCookie == null || sessionCookie.isBlank()) {

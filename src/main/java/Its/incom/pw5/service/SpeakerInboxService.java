@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.SpeakerInbox;
 import Its.incom.pw5.persistence.model.User;
@@ -15,6 +16,7 @@ import org.bson.types.ObjectId;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@GlobalLog
 @ApplicationScoped
 public class SpeakerInboxService {
 

@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.repository.SessionRepository;
@@ -9,6 +10,7 @@ import jakarta.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@GlobalLog
 @ApplicationScoped
 public class SessionService {
 

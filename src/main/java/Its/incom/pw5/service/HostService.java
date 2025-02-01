@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.HostStatus;
@@ -15,6 +16,7 @@ import org.bson.types.ObjectId;
 import java.util.List;
 import java.util.Objects;
 
+@GlobalLog
 @ApplicationScoped
 public class HostService {
     @Inject

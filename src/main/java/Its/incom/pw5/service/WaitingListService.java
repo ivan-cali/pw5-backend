@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.WaitingList;
 import Its.incom.pw5.persistence.repository.WaitingListRepository;
@@ -8,6 +9,7 @@ import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 
+@GlobalLog
 @ApplicationScoped
 public class WaitingListService {
     private final WaitingListRepository waitingListRepository;

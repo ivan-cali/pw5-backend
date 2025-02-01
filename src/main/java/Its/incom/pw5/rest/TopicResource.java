@@ -9,6 +9,8 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,8 @@ public class TopicResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getTopics(@QueryParam("name") String topicName) {
 
         if (topicName == null) {

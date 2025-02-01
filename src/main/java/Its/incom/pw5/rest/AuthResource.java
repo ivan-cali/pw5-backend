@@ -10,6 +10,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import javax.management.Notification;
 import java.time.LocalDateTime;
@@ -38,6 +40,8 @@ public class AuthResource {
 
     @POST
     @Path("/register")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response register(User user) {
         authService.checkNewUserCredentials(user);
@@ -55,6 +59,8 @@ public class AuthResource {
 
     @POST
     @Path("/login")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response login(User user) {
         User validUser = userService.checkUserCredentials(user.getEmail(), user.getHashedPsw());
@@ -91,6 +97,8 @@ public class AuthResource {
 
     @PUT
     @Path("/confirm/{token}")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response confirm(@PathParam("token") String token) {
         VerificationToken verificationToken = mailService.getVerificationToken(token);
         if (verificationToken == null) {
@@ -118,6 +126,8 @@ public class AuthResource {
 
     @GET
     @Path("/send-confirmation-mail")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response sendConfirmationMail(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
@@ -149,6 +159,8 @@ public class AuthResource {
 
     @DELETE
     @Path("/logout")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response logout(@CookieParam("SESSION_ID") String sessionCookie) {
         if (sessionCookie == null || sessionCookie.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -175,6 +187,8 @@ public class AuthResource {
     //create a new host
     @POST
     @Path("/register-host")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@CookieParam("SESSION_ID") String sessionId, Host host) {
@@ -220,6 +234,8 @@ public class AuthResource {
     // login as host
     @POST
     @Path("/login-host")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response loginHost(Host host) {
         try {
