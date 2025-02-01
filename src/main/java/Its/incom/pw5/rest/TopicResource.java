@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
+import java.util.Map;
 
 @Path("/topic")
 public class TopicResource {
@@ -25,15 +26,29 @@ public class TopicResource {
         if (topicName == null) {
             // Return all the existing topics
             List<Topic> topicList = topicService.getAllTopics();
-            return Response.ok().entity(topicList).build();
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Topics retrieved successfully.",
+                    "topics", topicList
+            );
+
+            return Response.ok(responseBody).build();
         } else {
             // Return the topic with the specified name
             Topic topic = topicService.findTopicByName(topicName);
 
             if (topic == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity("Topic with name " + topicName + " not found").build();
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "Topic with name " + topicName + " not found."))
+                        .build();
             }
-            return Response.ok().entity(topic).build();
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Topic retrieved successfully.",
+                    "topic", topic
+            );
+
+            return Response.ok(responseBody).build();
         }
     }
 }
