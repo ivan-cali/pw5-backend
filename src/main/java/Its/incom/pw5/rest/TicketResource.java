@@ -67,7 +67,12 @@ public class TicketResource {
                 user.getId().toHexString()
         );
 
-        return Response.ok(new ConfirmTicketResponse(confirmedTicket)).build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "Ticket confirmed successfully.",
+                "ticket", new ConfirmTicketResponse(confirmedTicket)
+        );
+
+        return Response.ok(responseBody).build();
     }
     @DELETE
     @Path("/delete")
@@ -79,14 +84,14 @@ public class TicketResource {
 
         if (sessionId == null || sessionId.isBlank()) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.")
+                    .entity(Map.of("message", "Session ID is required."))
                     .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.")
+                    .entity(Map.of("message", "Invalid session ID."))
                     .build();
         }
 
@@ -94,7 +99,7 @@ public class TicketResource {
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.")
+                    .entity(Map.of("message", "User not found."))
                     .build();
         }
 
@@ -102,7 +107,7 @@ public class TicketResource {
         String ticketIdStr = requestBody.get("ticketId");
         if (ticketIdStr == null || ticketIdStr.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("ticketId is required in the request body.")
+                    .entity(Map.of("message", "ticketId is required in the request body."))
                     .build();
         }
 
@@ -111,23 +116,26 @@ public class TicketResource {
             objTicketId = new ObjectId(ticketIdStr);
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Invalid ticket ID format.")
+                    .entity(Map.of("message", "Invalid ticket ID format."))
                     .build();
         }
 
         try {
             // Attempt to delete the ticket
             ticketService.deleteTicket(objTicketId, user.getId().toHexString());
-            return Response.ok("Ticket deleted successfully.").build();
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Ticket deleted successfully."
+            );
+
+            return Response.ok(responseBody).build();
         } catch (WebApplicationException e) {
-            // Pass through the exception's status and message
             return Response.status(e.getResponse().getStatus())
-                    .entity(e.getMessage())
+                    .entity(Map.of("message", e.getMessage()))
                     .build();
         } catch (Exception e) {
-            // Handle any other unexpected exceptions
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("An unexpected error occurred while deleting the ticket.")
+                    .entity(Map.of("message", "An unexpected error occurred while deleting the ticket."))
                     .build();
         }
     }

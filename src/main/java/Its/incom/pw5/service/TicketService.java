@@ -74,11 +74,6 @@ public class TicketService {
             throw new WebApplicationException("User not found.", Response.Status.UNAUTHORIZED);
         }
 
-        // Verify that the user has the ADMIN or HOST role
-        if (!user.getRole().equals(Role.ADMIN)) {
-            throw new WebApplicationException("User is not an Admin .", Response.Status.UNAUTHORIZED);
-        }
-
         // Retrieve the related event
         Event relatedEvent = eventRepository.findById(existingTicket.getEventId());
         if (relatedEvent == null) {
