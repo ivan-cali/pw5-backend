@@ -778,4 +778,12 @@ public class EventService {
                         .entity(Map.of("message", "Event not found.")).build()));
     }
 
+    public void deleteEventAsAdmin(ObjectId id) {
+        Event event = eventRepository.findByIdOptional(id)
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity("Event not found.").build()));
+
+        eventRepository.deleteEvent(event);
+    }
+
 }

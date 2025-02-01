@@ -57,7 +57,7 @@ public class EventResource {
         Host host = hostService.getHostById(session.getUserId());
         if (host == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "User is not an admin or host."))
+                    .entity(Map.of("message", "User is not an host."))
                     .build();
         } else {
             hostName = host.getName();
@@ -389,4 +389,97 @@ public class EventResource {
 
         return Response.ok(responseBody).build();
     }
+    @POST
+    @Path("/event-admin")
+    public Response createEventAsAdmin(@CookieParam("SESSION_ID") String sessionId, Event event) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
+        }
+        User user = userService.getUserById(session.getUserId());
+
+        if (user == null) {
+            System.out.println("No user found for session ID: " + session.getUserId());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
+        }
+
+        System.out.println("User found: " + user.getEmail() + ", Role: " + user.getRole());
+
+        if (user.getRole() == null || !Role.ADMIN.equals(user.getRole())) {
+            System.out.println("User role check failed. Expected: ADMIN, Found: " + user.getRole());
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("message", "User is not an admin."))
+                    .build();
+        }
+
+
+        Event createdEvent = eventService.createEvent(event, "Admin");
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event created successfully by admin.",
+                "event", createdEvent
+        );
+
+        return Response.status(Response.Status.CREATED).entity(responseBody).build();
+    }
+
+    @DELETE
+    @Path("/event-admin/{id}")
+    public Response deleteEventAsAdmin(@PathParam("id") ObjectId id, @CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session ID is required."))
+                    .build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session ID."))
+                    .build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+
+        if (user == null) {
+            System.out.println("No user found for session ID: " + session.getUserId());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
+        }
+
+        System.out.println("User found: " + user.getEmail() + ", Role: " + user.getRole());
+
+        if (user.getRole() == null || !Role.ADMIN.equals(user.getRole())) {
+            System.out.println("User role check failed. Expected: ADMIN, Found: " + user.getRole());
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("message", "User is not an admin."))
+                    .build();
+        }
+
+        Event event = eventService.getEventByObjectId(id);
+        if (event == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Event not found."))
+                    .build();
+        }
+
+        eventService.deleteEventAsAdmin(id);
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event deleted successfully by admin."
+        );
+
+        return Response.ok(responseBody).build();
+    }
+
 }
