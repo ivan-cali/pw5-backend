@@ -17,7 +17,8 @@ public class MailService {
     private final ReactiveMailer mailer;
     private final VerificationTokenRepository verificationTokenRepository;
 
-    private static final String BASE_URL = "http://localhost:8080";
+    // Angular frontend URL
+    private static final String BASE_URL = "http://localhost:4200";
 
     public MailService(ReactiveMailer mailer, VerificationTokenRepository verificationTokenRepository) {
         this.mailer = mailer;
@@ -45,7 +46,7 @@ public class MailService {
     public void sendVerificationMail(String email) {
         String token = generateToken(email);
 
-        String verificationLink = BASE_URL + "/auth/confirm/" + token;
+        String verificationLink = BASE_URL + "/auth/confirm-email/" + token;
 
         Mail mail = Mail.withHtml(
                 email,
