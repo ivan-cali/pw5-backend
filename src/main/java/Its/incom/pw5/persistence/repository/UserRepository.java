@@ -1,6 +1,5 @@
 package Its.incom.pw5.persistence.repository;
 
-import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.Role;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
@@ -43,5 +42,9 @@ public class UserRepository implements PanacheMongoRepository<User> {
         // s is a full name, so we need to split it into first and last name
         String[] names = s.split(" ");
         return find("firstName = ?1 and lastName = ?2", names[0], names[1]).list();
+    }
+
+    public User getUserByCredentials(String email, String hashedPsw) {
+        return find("email = ?1 and hashedPsw = ?2", email, hashedPsw).firstResult();
     }
 }

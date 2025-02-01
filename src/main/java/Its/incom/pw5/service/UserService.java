@@ -13,9 +13,11 @@ import java.util.List;
 @ApplicationScoped
 public class UserService {
     private final UserRepository userRepository;
+    private final HashCalculator hashCalculator;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, HashCalculator hashCalculator) {
         this.userRepository = userRepository;
+        this.hashCalculator = hashCalculator;
     }
 
     public void deleteUser(String id) {
@@ -73,5 +75,10 @@ public class UserService {
 
     public void updateUser(User user) {
         userRepository.updateUser(user);
+    }
+
+    public User checkUserCredentials(String email, String psw) {
+        String hashedPsw = hashCalculator.calculateHash(psw);
+        return userRepository.getUserByCredentials(email, hashedPsw);
     }
 }

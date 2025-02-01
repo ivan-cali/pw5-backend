@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.Response;
 
 import javax.management.Notification;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -42,14 +43,21 @@ public class AuthResource {
         authService.checkNewUserCredentials(user);
         mailService.sendVerificationMail(user.getEmail());
 
-        return Response.status(Response.Status.CREATED).entity("User successfully registered.").build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "User successfully registered.",
+                "user", user
+        );
+
+        return Response.status(Response.Status.CREATED)
+                .entity(responseBody)
+                .build();
     }
 
     @POST
     @Path("/login")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response login(User user) {
-        User validUser = userService.getUserByEmail(user.getEmail());
+        User validUser = userService.checkUserCredentials(user.getEmail(), user.getHashedPsw());
 
         if (validUser == null) {
             // Authentication failed
@@ -71,8 +79,12 @@ public class AuthResource {
                 false                   // Secure flag (true if using HTTPS)
         );
 
-        return Response
-                .ok("User successfully logged in.")
+        Map<String, Object> responseBody = Map.of(
+                "message", "User successfully logged in.",
+                "user", validUser
+        );
+
+        return Response.ok(responseBody)
                 .cookie(sessionCookie)
                 .build();
     }
@@ -96,9 +108,12 @@ public class AuthResource {
 
         userService.confirmUser(user);
 
-        return Response.status(Response.Status.OK)
-                .entity("User successfully confirmed.")
-                .build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "User successfully confirmed.",
+                "user", user
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     @GET
@@ -185,7 +200,14 @@ public class AuthResource {
             AdminNotification notification = new AdminNotification();
             notificationService.create(newHost, notification);
 
-            return Response.status(Response.Status.CREATED).entity("Host successfully registered.").build();
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Host successfully registered.",
+                    "host", newHost
+            );
+
+            return Response.status(Response.Status.CREATED)
+                    .entity(responseBody)
+                    .build();
         } catch (HostAlreadyExistsException e) {
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         } catch (HostCreationException e) {
@@ -228,7 +250,14 @@ public class AuthResource {
                     false
             );
 
-            return Response.ok("Host successfully logged in.").cookie(sessionCookie).build();
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Host successfully logged in.",
+                    "host", validHost
+            );
+
+            return Response.ok(responseBody)
+                    .cookie(sessionCookie)
+                    .build();
         } catch (IllegalStateException e) {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(e.getMessage())
