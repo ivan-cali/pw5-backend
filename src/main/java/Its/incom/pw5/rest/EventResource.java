@@ -1,9 +1,6 @@
 package Its.incom.pw5.rest;
 
-import Its.incom.pw5.persistence.model.Event;
-import Its.incom.pw5.persistence.model.Host;
-import Its.incom.pw5.persistence.model.Session;
-import Its.incom.pw5.persistence.model.User;
+import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.rest.model.UserBookingResponse;
@@ -20,6 +17,7 @@ import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Path("/event")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -42,12 +40,16 @@ public class EventResource {
     @POST
     public Response createEvent(@CookieParam("SESSION_ID") String sessionId, Event event) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         String hostName;
@@ -55,7 +57,8 @@ public class EventResource {
         Host host = hostService.getHostById(session.getUserId());
         if (host == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not an admin or host.").build();
+                    .entity(Map.of("message", "User is not an admin or host."))
+                    .build();
         } else {
             hostName = host.getName();
         }
@@ -63,8 +66,10 @@ public class EventResource {
         User user = userService.getUserByEmail(host.getCreatedBy());
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.").build();
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
+
 
         if (user.getRole() == Role.ADMIN) {
             hostName = "Admin";
@@ -73,11 +78,19 @@ public class EventResource {
         if (event == null) {
             // Return a bad request if no event data was provided
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event body is required.").build();
+                    .entity(Map.of("message", "Event body is required."))
+                    .build();
         }
 
+
         Event createdEvent = eventService.createEvent(event, hostName);
-        return Response.status(Response.Status.CREATED).entity(createdEvent).build();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event created successfully.",
+                "event", createdEvent
+        );
+
+        return Response.status(Response.Status.CREATED).entity(responseBody).build();
     }
 
     @PUT
@@ -86,49 +99,82 @@ public class EventResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response updateEvent(@PathParam("id") ObjectId id, Event updatedEvent, @QueryParam("speakerEmail") String speakerEmail) {
         try {
-            // Ensure the event is updated only if the date is at least 2 weeks away
+            // Update the event
             Event event = eventService.updateEvent(id, updatedEvent, speakerEmail);
-            return Response.ok(event).build();
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Event updated successfully.",
+                    "event", event
+            );
+
+            return Response.ok(responseBody).build();
         } catch (WebApplicationException ex) {
             return Response.status(ex.getResponse().getStatus())
-                    .entity(ex.getResponse().getEntity())
+                    .entity(Map.of("message", ex.getMessage()))
                     .type(MediaType.APPLICATION_JSON)
                     .build();
         } catch (Exception ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("An unexpected error occurred.").build();
+                    .entity(Map.of("message", "An unexpected error occurred."))
+                    .build();
         }
     }
 
     @DELETE
     @Path("/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
     public Response deleteEvent(@PathParam("id") ObjectId id, @CookieParam("SESSION_ID") String sessionId) {
-        if (sessionId == null) {
+        if (sessionId == null || sessionId.isBlank()) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.").build();
+                    .entity(Map.of("message", "Session ID is required."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.").build();
+                    .entity(Map.of("message", "Invalid session ID."))
+                    .build();
         }
 
         Host host = hostService.getHostById(session.getUserId());
         if (host == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not an admin or host.").build();
+                    .entity(Map.of("message", "User is not authorized to perform this action."))
+                    .build();
         }
 
+        // Check if the user is an admin
         User user = userService.getUserByEmail(host.getCreatedBy());
-        if (user == null || user.getRole() != Role.ADMIN) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not an admin or host.").build();
+        boolean isAdmin = user != null && user.getRole() == Role.ADMIN;
+
+        // Check if the event exists
+        Event event = eventService.getEventByObjectId(id);
+        if (event == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Event not found."))
+                    .build();
         }
 
+        // Allow deletion if the user is either the admin or the creator of the event
+        if (!isAdmin && !event.getHost().trim().equalsIgnoreCase(host.getName().trim())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("message", "User is not authorized to delete this event."))
+                    .build();
+        }
+
+
+        // Proceed to delete the event
         eventService.deleteEvent(id, host);
-        return Response.ok().entity("Event deleted successfully.").build();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event deleted successfully."
+        );
+
+        return Response.ok(responseBody).build();
     }
+
+
 
     @PUT
     @Path("/book")
@@ -136,30 +182,35 @@ public class EventResource {
     public Response bookEvent(@CookieParam("SESSION_ID") String sessionId, Event eventId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.").build();
+                    .entity(Map.of("message", "Session ID is required."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.").build();
+                    .entity(Map.of("message", "Invalid session ID."))
+                    .build();
         }
 
         Host host = hostService.getHostById(session.getUserId());
         if (host != null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Hosts cannot book events.").build();
+                    .entity(Map.of("message", "Hosts cannot book events."))
+                    .build();
         }
-
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.").build();
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
+
 
         if (UserStatus.VERIFIED != user.getStatus()) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not verified.").build();
+                    .entity(Map.of("message", "User is not verified."))
+                    .build();
         }
 
         eventService.checkAndBookEvent(eventId, user);
@@ -168,7 +219,12 @@ public class EventResource {
 
         mailService.sendBookingConfirmationMail(user.getEmail(), event);
 
-        return Response.ok().entity("Event booked successfully. An email confirmation has been sent.").build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event booked successfully. An email confirmation has been sent.",
+                "event", event
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     @PUT
@@ -177,24 +233,28 @@ public class EventResource {
     public Response revokeEvent(@CookieParam("SESSION_ID") String sessionId, Event eventId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.").build();
+                    .entity(Map.of("message", "Session ID is required."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.").build();
+                    .entity(Map.of("message", "Invalid session ID."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.").build();
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
 
         if (UserStatus.VERIFIED != user.getStatus()) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not verified.").build();
+                    .entity(Map.of("message", "User is not verified."))
+                    .build();
         }
 
         eventService.checkAndRevokeEvent(eventId, user);
@@ -203,7 +263,12 @@ public class EventResource {
 
         mailService.sendBookingRevocationMail(user.getEmail(), event);
 
-        return Response.ok().entity("Event revoked successfully. An email confirmation has been sent.").build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event revoked successfully. An email confirmation has been sent.",
+                "event", event
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     @GET
@@ -212,14 +277,14 @@ public class EventResource {
     public Response getUserBookedEvents(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.")
+                    .entity(Map.of("message", "Session ID is required."))
                     .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.")
+                    .entity(Map.of("message", "Invalid session ID."))
                     .build();
         }
 
@@ -227,77 +292,101 @@ public class EventResource {
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.")
+                    .entity(Map.of("message", "User not found."))
                     .build();
         }
 
-        // Prepare Response
-        UserBookingResponse response = new UserBookingResponse();
-        response.setBookedEvents(user.getUserDetails().getBookedEvents());
-        response.setBookedTickets(user.getUserDetails().getBookedTickets());
+        List<Event> bookedEvents = user.getUserDetails().getBookedEvents();
+        List<Ticket> bookedTickets = user.getUserDetails().getBookedTickets();
 
-        return Response.ok(response).build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "User booked events and tickets retrieved successfully.",
+                "bookedEvents", bookedEvents,
+                "bookedTickets", bookedTickets
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     @GET
     @Path("/archived")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<Event> getArchivedEvents(@CookieParam("SESSION_ID") String sessionId) {
+    public Response getArchivedEvents(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session ID is required."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session ID."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
 
         if (UserStatus.VERIFIED != user.getStatus()) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not verified.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User is not verified."))
+                    .build();
         }
 
-        return user.getUserDetails().getArchivedEvents();
+        List<Event> archivedEvents = user.getUserDetails().getArchivedEvents();
 
+        Map<String, Object> responseBody = Map.of(
+                "message", "Archived events retrieved successfully.",
+                "archivedEvents", archivedEvents
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     @GET
-    public List<Event> getEvents(@QueryParam("topics") List<String> topics, @QueryParam("date") String date, @QueryParam("speakers") List<String> speakers) {
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getEvents(@QueryParam("topics") List<String> topics,
+                              @QueryParam("date") String date,
+                              @QueryParam("speakers") List<String> speakers) {
         List<Event> events = new ArrayList<>();
 
-        if ((topics == null || topics.isEmpty()) && (date == null || date.isEmpty()) && (speakers == null || speakers.isEmpty())) {
-            return eventService.getAllEvents();
-        }
+        if ((topics == null || topics.isEmpty()) &&
+                (date == null || date.isEmpty()) &&
+                (speakers == null || speakers.isEmpty())) {
+            events = eventService.getAllEvents();
+        } else {
+            if (topics != null && !topics.isEmpty()) {
+                List<Event> eventsByTopic = eventService.getEventsByTopic(topics);
+                if (eventsByTopic != null) {
+                    events.addAll(eventsByTopic);
+                }
+            }
 
-        if (topics != null && !topics.isEmpty()) {
-            List<Event> eventsByTopic = eventService.getEventsByTopic(topics);
-            if (eventsByTopic != null) {
-                events.addAll(eventsByTopic);
+            if (date != null && !date.isEmpty()) {
+                List<Event> eventsByDate = eventService.getEventsByDate(date);
+                if (eventsByDate != null) {
+                    events.addAll(eventsByDate);
+                }
+            }
+
+            if (speakers != null && !speakers.isEmpty()) {
+                List<Event> eventsBySpeaker = eventService.getEventsBySpeaker(speakers);
+                if (eventsBySpeaker != null) {
+                    events.addAll(eventsBySpeaker);
+                }
             }
         }
 
-        if (date != null && !date.isEmpty()) {
-            List<Event> eventsByDate = eventService.getEventsByDate(date);
-            if (eventsByDate != null) {
-                events.addAll(eventsByDate);
-            }
-        }
+        Map<String, Object> responseBody = Map.of(
+                "message", "Events retrieved successfully.",
+                "events", events
+        );
 
-        if (speakers != null && !speakers.isEmpty()) {
-            List<Event> eventsBySpeaker = eventService.getEventsBySpeaker(speakers);
-            if (eventsBySpeaker != null) {
-                events.addAll(eventsBySpeaker);
-            }
-        }
-
-        return events;
+        return Response.ok(responseBody).build();
     }
 }

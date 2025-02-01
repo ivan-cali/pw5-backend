@@ -21,6 +21,7 @@ import org.bson.types.ObjectId;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @ApplicationScoped
@@ -677,7 +678,7 @@ public class EventService {
                         .entity("Event not found.").build()));
 
         // Check if the host is authorized to delete the event
-        if (!Objects.equals(event.getHost(), host.getEmail())) {
+        if (!Objects.equals(event.getHost(), host.getName())) {
             throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
                     .entity("User is not authorized to delete this event.").build());
         }
@@ -770,4 +771,11 @@ public class EventService {
         }
 
     }
+
+    public Event getEventByObjectId(ObjectId id) {
+        return eventRepository.findByIdOptional(id)
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "Event not found.")).build()));
+    }
+
 }
