@@ -12,6 +12,7 @@ import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Path("/user")
@@ -36,87 +37,161 @@ public class UserResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<User> getUsers(@CookieParam("SESSION_ID") String sessionId) {
+    public Response getUsers(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
 
         if (Role.ADMIN != user.getRole()) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Logged user is not an admin."))
+                    .build();
         }
 
-        return userService.getAllUsers();
+        List<User> userList = userService.getAllUsers();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Users retrieved successfully.",
+                "users", userList
+        );
+
+        return Response.ok(responseBody).build();
     }
+
 
     @DELETE
     @Path("/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
     public Response deleteUser(@PathParam("id") String id, @CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
 
         if (Role.ADMIN != user.getRole()) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Logged user is not an admin."))
+                    .build();
+        }
+        // Check if the user to delete exists
+        User userToDelete = userService.getUserById(id);
+        if (userToDelete == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "User with ID " + id + " not found."))
+                    .build();
         }
 
         userService.deleteUser(id);
-        return Response.status(Response.Status.NO_CONTENT).build();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "User deleted successfully."
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     public Response updateUserToSpeaker(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
 
         if (UserStatus.VERIFIED != user.getStatus()) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("User not verified.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not verified."))
+                    .build();
+        }
+
+        if (Role.ADMIN == user.getRole()) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("message", "Admins cannot change their role."))
+                    .build();
         }
 
         if (Role.SPEAKER == user.getRole()) {
             userService.updateSpeakerToUser(user);
-            return Response.status(Response.Status.OK).entity("Speaker updated to User.").build();
+            user = userService.getUserById(user.getId().toHexString()); // Fetch updated user object
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Speaker updated to User successfully.",
+                    "user", user
+            );
+
+            return Response.ok(responseBody).build();
         } else {
             userService.updateUserToSpeaker(user);
-            return Response.status(Response.Status.OK).entity("User updated to Speaker.").build();
+            user = userService.getUserById(user.getId().toHexString()); // Fetch updated user object
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "User updated to Speaker successfully.",
+                    "user", user
+            );
+
+            return Response.ok(responseBody).build();
         }
     }
+
     @GET
     @Path("/speakers")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<SpeakerResponse> getSpeakers() {
-        return userService.getAllSpeakers();
+    public Response getSpeakers() {
+        List<SpeakerResponse> speakers = userService.getAllSpeakers();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Speakers retrieved successfully.",
+                "speakers", speakers
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     //all notifications for new host creation
@@ -124,23 +199,35 @@ public class UserResource {
     @Path("/notification/all")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getHostRequests(@CookieParam("SESSION_ID") String sessionId){
+    public Response getHostRequests(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (Role.ADMIN != user.getRole()) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Logged user is not an admin."))
+                    .build();
         }
 
         List<AdminNotification> notifications = notificationService.getAllNotifications();
-        return Response.ok().entity(notifications).build();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Notifications retrieved successfully.",
+                "notifications", notifications
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     //all notification filtered by status
@@ -148,24 +235,37 @@ public class UserResource {
     @Path("/notification")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response getUnreadNotifications(@CookieParam("SESSION_ID") String sessionId, @QueryParam("status") NotificationStatus status){
+    public Response getUnreadNotifications(@CookieParam("SESSION_ID") String sessionId, @QueryParam("status") NotificationStatus status) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (Role.ADMIN != user.getRole()) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Logged user is not an admin."))
+                    .build();
         }
 
         List<AdminNotification> notifications = notificationService.getFilteredNotificationByStatus(status);
-        return Response.ok().entity(notifications).build();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Filtered notifications retrieved successfully.",
+                "notifications", notifications
+        );
+
+        return Response.ok(responseBody).build();
     }
+
 
 
 
@@ -175,22 +275,30 @@ public class UserResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response approveRequest(@CookieParam("SESSION_ID") String sessionId, @PathParam("notificationId") ObjectId notificationId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (Role.ADMIN != user.getRole()) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Logged user is not an admin."))
+                    .build();
         }
 
         AdminNotification notification = notificationService.getById(notificationId);
         if (notification == null || !notification.getStatus().equals(NotificationStatus.UNREAD)) {
-            return Response.status(Response.Status.NOT_FOUND).entity("Notification not found or already handled.").build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Notification not found or already handled."))
+                    .build();
         }
 
         Host hostRequest = hostService.findHostRequst(notification.getHostId());
@@ -205,7 +313,12 @@ public class UserResource {
 
         notificationService.update(notification);
 
-        return Response.ok().build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "Notification confirmed and host request approved successfully.",
+                "hostRequest", hostRequest
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     //new host rejection by admin
@@ -214,22 +327,30 @@ public class UserResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response rejectRequest(@CookieParam("SESSION_ID") String sessionId, @PathParam("notificationId") ObjectId notificationId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (Role.ADMIN != user.getRole()) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Logged user is not an admin.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Logged user is not an admin."))
+                    .build();
         }
 
         AdminNotification notification = notificationService.getById(notificationId);
         if (notification == null || !notification.getStatus().equals(NotificationStatus.UNREAD)) {
-            return Response.status(Response.Status.NOT_FOUND).entity("Notification not found or already handled.").build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Notification not found or already handled."))
+                    .build();
         }
 
         Host hostRequest = hostService.findHostRequst(notification.getHostId());
@@ -242,7 +363,12 @@ public class UserResource {
 
         notificationService.update(notification);
 
-        return Response.ok().build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "Notification rejected and host request handled successfully.",
+                "hostRequest", hostRequest
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     //Add a topic to user favourite topic list
@@ -252,23 +378,37 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response addFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
 
         Topic topic = topicService.getTopicById(topicId);
         if (topic == null) {
-            return Response.status(Response.Status.NOT_FOUND).entity("Topic not found.").build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Topic not found."))
+                    .build();
         }
 
         topicService.addFavouriteTopic(user, topic);
-        return Response.ok().entity(topic.getName() + " added to favourite topics.").build();
+        User updatedUser = userService.getUserById(user.getId().toHexString());
+
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Topic added to favourite topics successfully.",
+                "topic", updatedUser
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     //Remove a topic to user favourite topic list
@@ -278,22 +418,35 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response removeFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
-
         User user = userService.getUserById(session.getUserId());
         Topic topic = topicService.getTopicById(topicId);
-        if (topic == null){
-            return Response.status(Response.Status.NOT_FOUND).entity("Topic not found.").build();
+        if (topic == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Topic not found."))
+                    .build();
         }
 
         topicService.removeFavouriteTopic(user, topic);
-        return Response.ok().entity(topic.getName() + " removed from favourite topics.").build();
+
+        User updatedUser = userService.getUserById(user.getId().toHexString());
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Topic removed from favourite topics successfully.",
+                "user", updatedUser
+        );
+
+        return Response.ok(responseBody).build();
     }
 
     //Get all user favourite topic
@@ -303,16 +456,26 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUserFavouriteTopics(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         List<Topic> userFavouriteTopics = user.getUserDetails().getFavouriteTopics();
-        return Response.ok(userFavouriteTopics).build();
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Favourite topics retrieved successfully.",
+                "favouriteTopics", userFavouriteTopics
+        );
+
+        return Response.ok(responseBody).build();
     }
 }
