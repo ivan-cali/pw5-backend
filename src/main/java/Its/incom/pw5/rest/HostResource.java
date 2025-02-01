@@ -19,6 +19,7 @@ import org.bson.types.ObjectId;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 @Path("/host")
@@ -40,9 +41,17 @@ public class HostResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAll() {
         try {
-            return Response.ok(hostService.getAll()).build();
+            List<Host> hosts = hostService.getAll();
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Hosts retrieved successfully.",
+                    "hosts", hosts
+            );
+            return Response.ok(responseBody).build();
         } catch (HostNotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+            Map<String, Object> responseBody = Map.of(
+                    "message", e.getMessage()
+            );
+            return Response.status(Response.Status.NOT_FOUND).entity(responseBody).build();
         }
     }
 
@@ -154,6 +163,11 @@ public class HostResource {
         host.setProgrammedEvents(hostProgrammedEvents);
         hostService.updateEvents(host);
 
-        return Response.ok(event).build();
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event confirmed successfully.",
+                "event", event
+        );
+
+        return Response.ok(responseBody).build();
     }
 }
