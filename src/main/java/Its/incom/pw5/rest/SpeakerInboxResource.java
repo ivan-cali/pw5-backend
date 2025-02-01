@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.util.List;
+import java.util.Map;
 
 @Path("/speaker-inbox")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -23,13 +24,22 @@ public class SpeakerInboxResource {
     @Path("/{inboxId}/confirm")
     public Response confirmRequest(@PathParam("inboxId") ObjectId inboxId) {
         try {
-            return Response.ok(speakerInboxService.confirmRequest(inboxId)).build();
+            SpeakerInbox confirmedRequest = speakerInboxService.confirmRequest(inboxId);
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Request confirmed successfully.",
+                    "request", confirmedRequest
+            );
+
+            return Response.ok(responseBody).build();
         } catch (WebApplicationException ex) {
             return Response.status(ex.getResponse().getStatus())
-                    .entity(ex.getMessage()).build();
+                    .entity(Map.of("message", ex.getMessage()))
+                    .build();
         } catch (Exception ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("An unexpected error occurred.").build();
+                    .entity(Map.of("message", "An unexpected error occurred."))
+                    .build();
         }
     }
 
@@ -37,15 +47,25 @@ public class SpeakerInboxResource {
     @Path("/{inboxId}/reject")
     public Response rejectRequest(@PathParam("inboxId") ObjectId inboxId) {
         try {
-            return Response.ok(speakerInboxService.rejectRequest(inboxId)).build();
+            SpeakerInbox rejectedRequest = speakerInboxService.rejectRequest(inboxId);
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Request rejected successfully.",
+                    "request", rejectedRequest
+            );
+
+            return Response.ok(responseBody).build();
         } catch (WebApplicationException ex) {
             return Response.status(ex.getResponse().getStatus())
-                    .entity(ex.getMessage()).build();
+                    .entity(Map.of("message", ex.getMessage()))
+                    .build();
         } catch (Exception ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("An unexpected error occurred.").build();
+                    .entity(Map.of("message", "An unexpected error occurred."))
+                    .build();
         }
     }
+
     @GET
     @Path("/my-requests")
     public Response getMyRequests(@CookieParam("SESSION_ID") String sessionCookie, @QueryParam("status") SpeakerInboxStatus requestStatus) {
@@ -54,16 +74,26 @@ public class SpeakerInboxResource {
                 throw new WebApplicationException("Session cookie is required", 401);
             }
 
-            // Get all requests for the current user
             List<SpeakerInbox> userRequests = speakerInboxService.getRequestsForUser(sessionCookie, requestStatus);
 
-            return Response.ok(userRequests).build();
+            if (userRequests == null || userRequests.isEmpty()) {
+                return Response.ok(Map.of("message", "You have 0 requests.")).build();
+            }
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Requests retrieved successfully.",
+                    "requests", userRequests
+            );
+
+            return Response.ok(responseBody).build();
         } catch (WebApplicationException ex) {
             return Response.status(ex.getResponse().getStatus())
-                    .entity(ex.getMessage()).build();
+                    .entity(Map.of("message", ex.getMessage()))
+                    .build();
         } catch (Exception ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("An unexpected error occurred.").build();
+                    .entity(Map.of("message", "An unexpected error occurred."))
+                    .build();
         }
     }
 }
