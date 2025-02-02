@@ -92,6 +92,18 @@ public class EventResource {
 
         return Response.status(Response.Status.CREATED).entity(responseBody).build();
     }
+    @GET
+    @Path("/{id}")
+    public Response getEventById(@PathParam("id") ObjectId id) {
+        Event event = eventService.getEventByObjectId(id);
+        if (event == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Event not found."))
+                    .build();
+        }
+
+        return Response.ok(Map.of("event", event)).build();
+    }
 
     @PUT
     @Path("/{id}")
