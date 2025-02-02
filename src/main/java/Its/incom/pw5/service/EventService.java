@@ -119,6 +119,7 @@ public class EventService {
                     .entity("Cannot edit a confirmed event.").build());
         }
 
+
         // Track changes to the max participants field
         boolean maxParticipantsChanged = updatedEvent.getMaxPartecipants() > 0
                 && updatedEvent.getMaxPartecipants() != existingEvent.getMaxPartecipants();

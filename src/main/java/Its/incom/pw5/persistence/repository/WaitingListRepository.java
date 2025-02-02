@@ -1,12 +1,21 @@
 package Its.incom.pw5.persistence.repository;
 
 import Its.incom.pw5.persistence.model.WaitingList;
+import Its.incom.pw5.service.exception.InvalidInputException;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
 @ApplicationScoped
 public class WaitingListRepository implements PanacheMongoRepository<WaitingList> {
+
+    // Validate and sanitize ObjectId
+    private ObjectId validateAndSanitizeObjectId(ObjectId id) {
+        if (id == null) {
+            throw new InvalidInputException("ID cannot be null.");
+        }
+        return id;
+    }
 
     public void addWaitingList(WaitingList waitingList) {
         persist(waitingList);
@@ -17,7 +26,8 @@ public class WaitingListRepository implements PanacheMongoRepository<WaitingList
     }
 
     public WaitingList getWaitingListByEventId(ObjectId id) {
-        return find("eventId", id).firstResult();
+        ObjectId sanitizedId = validateAndSanitizeObjectId(id);
+        return find("eventId", sanitizedId).firstResult();
     }
 
     public void updateWaitingList(WaitingList waitingList) {

@@ -99,10 +99,10 @@ public class EventResource {
 
     @PUT
     @Path("/{id}")
-    @Counted(name = "api_calls_total", description = "Total number of API calls")
-    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response updateEvent(@PathParam("id") ObjectId id, Event updatedEvent, @QueryParam("speakerEmail") String speakerEmail) {
         try {
             // Update the event
