@@ -324,14 +324,15 @@ public class AuthResource {
 
         // Get the user from the session
         User user = userService.getUserById(session.getUserId());
+        Host host;
         if (user == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity("User not found.")
-                    .build();
+            // Get the host from the session userId which is the host id
+            host = hostService.getHostById(session.getUserId());
+        } else {
+            // Get the host from the user
+            host = hostService.getHostByUserCreatorEmail(user.getEmail());
         }
 
-        // Get the host from the user
-        Host host = hostService.getHostByUserCreatorEmail(user.getEmail());
         if (host == null) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Host not found.")

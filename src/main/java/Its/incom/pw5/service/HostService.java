@@ -10,9 +10,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @ApplicationScoped
@@ -93,12 +96,18 @@ public class HostService {
 
             //check string newPsw
             if (newPsw == null || newPsw.isEmpty()) {
-                throw new IllegalArgumentException("New password not provided");
+                Map<String, Object> responseBody = Map.of(
+                        "message", "New password not provided"
+                );
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
             }
 
             //check string oldPsw
             if (oldPsw == null || oldPsw.isEmpty()) {
-                throw new IllegalArgumentException("Old password not provided");
+                Map<String, Object> responseBody = Map.of(
+                        "message", "Old password not provided"
+                );
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
             }
 
             //password hashing
@@ -106,11 +115,17 @@ public class HostService {
             String oldHashedPsw = hashCalculator.calculateHash(oldPsw);
 
             if (!Objects.equals(oldHashedPsw, host.getHashedPsw())) {
-                throw new IllegalArgumentException("Wrong temporary password");
+                Map<String, Object> responseBody = Map.of(
+                        "message", "Old password is incorrect"
+                );
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
             }
 
             if (Objects.equals(newHashedPsw, host.getHashedPsw())) {
-                throw new IllegalArgumentException("Passwords can't be the same");
+                Map<String, Object> responseBody = Map.of(
+                        "message", "New password cannot be the same as the old password"
+                );
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
             }
 
             //update the old generated password with the new password

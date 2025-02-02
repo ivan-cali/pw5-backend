@@ -99,10 +99,12 @@ public class HostResource {
                     false                   // Secure flag (true if using HTTPS)
             );
 
-            return Response.ok()
-                    .entity("Password updated")
-                    .cookie(sessionCookie)
-                    .build();
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Password updated",
+                    "host", host
+            );
+
+            return Response.ok(responseBody).cookie(sessionCookie).build();
         } catch (HostNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
         } catch (HostUpdateException e) {

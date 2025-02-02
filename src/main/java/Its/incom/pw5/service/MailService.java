@@ -214,7 +214,7 @@ public class MailService {
     }
 
     public void sendHostRequestApprovalEmail(String email, String generatedPsw) {
-        String verificationLink = BASE_URL + "/host/change-password";
+        String verificationLink = BASE_URL + "/auth/register/step-4";
         Mail mail = Mail.withHtml(
                 email,
                 "CONFERMA CREAZIONE ACCOUNT AZIENDA/PARTNER",
