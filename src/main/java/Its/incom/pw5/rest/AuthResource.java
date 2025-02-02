@@ -89,6 +89,37 @@ public class AuthResource {
                 .build();
     }
 
+    @GET
+    @Path("/get-authenticated-user")
+    public Response getAuthenticatedUser(@CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Session cookie not found.")
+                    .build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Invalid session cookie.")
+                    .build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (user == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("User not found.")
+                    .build();
+        }
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "User successfully retrieved.",
+                "user", user
+        );
+
+        return Response.ok(responseBody).build();
+    }
+
     @PUT
     @Path("/confirm/{token}")
     public Response confirm(@PathParam("token") String token) {
@@ -135,14 +166,23 @@ public class AuthResource {
         }
 
         if (user.getStatus() == UserStatus.VERIFIED) {
+            Map<String, Object> responseBody = Map.of(
+                    "message", "User is already verified."
+            );
+
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("User is already verified.")
+                    .entity(responseBody)
                     .build();
         }
 
         mailService.sendVerificationMail(user.getEmail());
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Confirmation mail sent."
+        );
+
         return Response.status(Response.Status.OK)
-                .entity("Confirmation mail sent.")
+                .entity(responseBody)
                 .build();
     }
 
