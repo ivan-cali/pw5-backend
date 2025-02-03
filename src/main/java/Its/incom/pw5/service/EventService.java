@@ -392,16 +392,16 @@ public class EventService {
         }
     }
 
-    public void checkAndBookEvent(ObjectId eventId, User user) {
+    public void checkAndBookEvent(ObjectId id, User user) {
         // Check if the event is provided
-        if (eventId == null) {
+        if (id == null) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("message", "Event body is required."))
                     .build());
         }
 
         // Find the event in the database
-        Event existingEvent = eventRepository.findByIdOptional(eventId)
+        Event existingEvent = eventRepository.findByIdOptional(id)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity(Map.of("message", "Event not found."))
                         .build()));
