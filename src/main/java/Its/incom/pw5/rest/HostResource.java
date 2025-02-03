@@ -15,6 +15,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -39,6 +41,8 @@ public class HostResource {
     //get all hosts
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getAll() {
         try {
             List<Host> hosts = hostService.getAll();
@@ -59,6 +63,8 @@ public class HostResource {
     @Path("/change-password")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response changePsw(@CookieParam("SESSION_ID") String sessionId, PasswordEditRequest passwordEditRequest) {
         try {
             //find user session
@@ -119,6 +125,8 @@ public class HostResource {
     @Path("confirm-event/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response confirmEvent(@CookieParam("SESSION_ID") String sessionId, @PathParam("id") ObjectId eventId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();

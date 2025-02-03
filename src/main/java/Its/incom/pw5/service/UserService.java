@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.persistence.repository.UserRepository;
@@ -10,6 +11,7 @@ import Its.incom.pw5.persistence.model.User;
 
 import java.util.List;
 
+@GlobalLog
 @ApplicationScoped
 public class UserService {
     private final UserRepository userRepository;

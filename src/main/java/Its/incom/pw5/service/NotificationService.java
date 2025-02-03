@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.AdminNotification;
 import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.enums.NotificationStatus;
@@ -10,6 +11,7 @@ import org.bson.types.ObjectId;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@GlobalLog
 @ApplicationScoped
 public class NotificationService {
 

@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.VerificationToken;
 import Its.incom.pw5.persistence.repository.VerificationTokenRepository;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+@GlobalLog
 @ApplicationScoped
 public class MailService {
     private final ReactiveMailer mailer;

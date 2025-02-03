@@ -14,6 +14,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +40,8 @@ public class EventResource {
     }
 
     @POST
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response createEvent(@CookieParam("SESSION_ID") String sessionId, Event event) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -109,6 +113,8 @@ public class EventResource {
     @Path("/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response updateEvent(@PathParam("id") ObjectId id, Event updatedEvent, @QueryParam("speakerEmail") String speakerEmail) {
         try {
             // Update the event
@@ -134,6 +140,8 @@ public class EventResource {
 
     @DELETE
     @Path("/{id}")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Produces(MediaType.APPLICATION_JSON)
     public Response deleteEvent(@PathParam("id") ObjectId id, @CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
@@ -190,6 +198,8 @@ public class EventResource {
 
     @PUT
     @Path("/book")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response bookEvent(@CookieParam("SESSION_ID") String sessionId, Event eventId) {
         if (sessionId == null) {
@@ -241,6 +251,8 @@ public class EventResource {
 
     @PUT
     @Path("/revoke")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response revokeEvent(@CookieParam("SESSION_ID") String sessionId, Event eventId) {
         if (sessionId == null) {
@@ -285,6 +297,8 @@ public class EventResource {
 
     @GET
     @Path("/booked")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUserBookedEvents(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
@@ -322,6 +336,8 @@ public class EventResource {
 
     @GET
     @Path("/archived")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getArchivedEvents(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
@@ -361,6 +377,8 @@ public class EventResource {
     }
 
     @GET
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getEvents(@QueryParam("topics") List<String> topics,
                               @QueryParam("date") String date,
@@ -403,6 +421,8 @@ public class EventResource {
     }
     @POST
     @Path("/event-admin")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response createEventAsAdmin(@CookieParam("SESSION_ID") String sessionId, Event event) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -446,6 +466,8 @@ public class EventResource {
 
     @DELETE
     @Path("/event-admin/{id}")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response deleteEventAsAdmin(@PathParam("id") ObjectId id, @CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
             return Response.status(Response.Status.UNAUTHORIZED)

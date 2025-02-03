@@ -10,6 +10,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
+import org.eclipse.microprofile.metrics.annotation.Counted;
+import org.eclipse.microprofile.metrics.annotation.Timed;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,8 @@ public class UserResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getUsers(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -78,6 +82,8 @@ public class UserResource {
     @DELETE
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response deleteUser(@PathParam("id") String id, @CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -124,6 +130,8 @@ public class UserResource {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response updateUserToSpeaker(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -183,6 +191,8 @@ public class UserResource {
     @GET
     @Path("/speakers")
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getSpeakers() {
         List<SpeakerResponse> speakers = userService.getAllSpeakers();
 
@@ -199,6 +209,8 @@ public class UserResource {
     @Path("/notification/all")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getHostRequests(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -235,6 +247,8 @@ public class UserResource {
     @Path("/notification")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getUnreadNotifications(@CookieParam("SESSION_ID") String sessionId, @QueryParam("status") NotificationStatus status) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -273,6 +287,8 @@ public class UserResource {
     @PUT
     @Path("/notification/{notificationId}/confirm")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response approveRequest(@CookieParam("SESSION_ID") String sessionId, @PathParam("notificationId") ObjectId notificationId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -325,6 +341,8 @@ public class UserResource {
     @PUT
     @Path("/notification/{notificationId}/reject")
     @Consumes(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response rejectRequest(@CookieParam("SESSION_ID") String sessionId, @PathParam("notificationId") ObjectId notificationId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -376,6 +394,8 @@ public class UserResource {
     @Path("/favourite-topic/add/{topicId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response addFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -416,6 +436,8 @@ public class UserResource {
     @Path("/favourite-topic/remove/{topicId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response removeFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -454,6 +476,8 @@ public class UserResource {
     @Path("/favourite-topic")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response getUserFavouriteTopics(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)

@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
 import Its.incom.pw5.persistence.model.enums.Role;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+@GlobalLog
 @ApplicationScoped
 public class EventService {
     private final EventRepository eventRepository;
@@ -116,6 +118,7 @@ public class EventService {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity("Cannot edit a confirmed event.").build());
         }
+
 
         // Track changes to the max participants field
         boolean maxParticipantsChanged = updatedEvent.getMaxPartecipants() > 0

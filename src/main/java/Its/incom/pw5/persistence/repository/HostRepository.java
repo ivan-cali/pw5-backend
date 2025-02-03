@@ -1,98 +1,91 @@
 package Its.incom.pw5.persistence.repository;
 
 import Its.incom.pw5.persistence.model.Host;
-import Its.incom.pw5.persistence.model.enums.HostStatus;
-import Its.incom.pw5.persistence.model.enums.Type;
+import Its.incom.pw5.service.exception.InvalidInputException;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
-import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
 import java.util.List;
-import java.util.Map;
+import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class HostRepository implements PanacheMongoRepository<Host> {
 
-    //get all hosts
-    public List<Host> getAll(){
+    private static final Pattern SAFE_NAME_PATTERN = Pattern.compile("^[A-Za-z0-9_\\-\\s]+$");
+    private static final Pattern SAFE_EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
+    // Validates and sanitizes a name field
+    private String validateAndSanitizeName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new InvalidInputException("Name cannot be null or empty.");
+        }
+        if (!SAFE_NAME_PATTERN.matcher(name).matches()) {
+            throw new InvalidInputException("Invalid name format.");
+        }
+        return name.trim();
+    }
+
+    // Validates and sanitizes an email field
+    private String validateAndSanitizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new InvalidInputException("Email cannot be null or empty.");
+        }
+        if (!SAFE_EMAIL_PATTERN.matcher(email).matches()) {
+            throw new InvalidInputException("Invalid email format.");
+        }
+        return email.trim();
+    }
+
+    // Get all hosts
+    public List<Host> getAll() {
         return listAll();
     }
 
-    //create new host
-    public void create(Host newHost){
+    // Create new host
+    public void create(Host newHost) {
         persist(newHost);
-
     }
 
-    //delete host
-    public void delete(Host host){
+    // Delete a host
+    public void delete(Host host) {
         delete(host);
     }
 
-    //update host
-//    public Host update(Host host, Map<String, Object> updates){
-//        updates.forEach((key, value) -> {
-//            switch (key) {
-//                case "type":
-//                    if(value == null || !(value instanceof Type)) {
-//                        throw new IllegalArgumentException("Field type must have COMPANY or PARTNER value");
-//                    }
-//                    host.setType((Type) value);
-//                    break;
-//
-//                case "name":
-//                    if(value == null || ((String) value).isEmpty()) {
-//                        throw new IllegalArgumentException("Field name cannot be empty");
-//                    }
-//                    host.setName((String) value);
-//                    break;
-//
-//                case "description":
-//                    if(value == null || ((String) value).isEmpty()) {
-//                        throw new IllegalArgumentException("Field description cannot be empty");
-//                    }
-//                    host.setDescription((String) value);
-//                    break;
-//
-//                case "hashedPsw":
-//                    if (value == null || ((String) value).isEmpty()){
-//                        throw new IllegalArgumentException("Field password cannot be empty");
-//                    }
-//
-//                default:
-//                    throw new IllegalArgumentException("Field " + key + " not valid");
-//            }
-//        });
-//        persistOrUpdate(host);
-//        return host;
-//    }
-
-    //hostName already exist
-    public boolean hostNameExists(String name){
-        return find("name", name).firstResult() != null;
+    // Check if host name exists
+    public boolean hostNameExists(String name) {
+        String sanitizedName = validateAndSanitizeName(name);
+        return find("name", sanitizedName).firstResult() != null;
     }
 
-    public boolean hostEmailExists(String email){
-        return find("email", email).firstResult() != null;
+    // Check if host email exists
+    public boolean hostEmailExists(String email) {
+        String sanitizedEmail = validateAndSanitizeEmail(email);
+        return find("email", sanitizedEmail).firstResult() != null;
     }
 
-    //get host by email
+    // Get host by email
     public Host findByEmail(String email) {
-        return find("email", email).firstResult();
+        String sanitizedEmail = validateAndSanitizeEmail(email);
+        return find("email", sanitizedEmail).firstResult();
     }
 
-    //get host by id
-    public Host getById (ObjectId id){
+    // Get host by ID
+    public Host getById(ObjectId id) {
+        if (id == null) {
+            throw new InvalidInputException("ID cannot be null.");
+        }
         return findById(id);
     }
 
-    //change status host
-    public void updateHost(Host newHost){
+    // Change host status or update host
+    public void updateHost(Host newHost) {
         update(newHost);
     }
 
-    public Host getByUserCreatorEmail(String email){
-        return find("createdBy", email).firstResult();
+    // Get host by creator's email
+    public Host getByUserCreatorEmail(String email) {
+        String sanitizedEmail = validateAndSanitizeEmail(email);
+        return find("createdBy", sanitizedEmail).firstResult();
     }
 }

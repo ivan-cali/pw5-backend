@@ -1,5 +1,6 @@
 package Its.incom.pw5.service;
 
+import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.Ticket;
 import Its.incom.pw5.persistence.model.User;
@@ -14,6 +15,7 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
+@GlobalLog
 @ApplicationScoped
 public class TicketService {
     private final TicketRepository ticketRepository;

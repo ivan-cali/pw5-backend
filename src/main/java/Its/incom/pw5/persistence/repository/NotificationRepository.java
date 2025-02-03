@@ -1,6 +1,7 @@
 package Its.incom.pw5.persistence.repository;
 
 import Its.incom.pw5.persistence.model.AdminNotification;
+import Its.incom.pw5.service.exception.InvalidInputException;
 import Its.incom.pw5.persistence.model.enums.NotificationStatus;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,23 +12,46 @@ import java.util.List;
 @ApplicationScoped
 public class NotificationRepository implements PanacheMongoRepository<AdminNotification> {
 
-    public void create(AdminNotification notification){
+    // Validate and sanitize ObjectId
+    private ObjectId validateAndSanitizeObjectId(ObjectId id) {
+        if (id == null) {
+            throw new InvalidInputException("ID cannot be null.");
+        }
+        return id;
+    }
+
+    // Validate NotificationStatus input
+    private NotificationStatus validateAndSanitizeStatus(NotificationStatus status) {
+        if (status == null) {
+            throw new InvalidInputException("Notification status cannot be null.");
+        }
+        return status;
+    }
+
+    // Create a new notification
+    public void create(AdminNotification notification) {
         persist(notification);
     }
 
-    public void update(AdminNotification notification){
+    // Update an existing notification
+    public void update(AdminNotification notification) {
         persistOrUpdate(notification);
     }
 
+    // Find a notification by ID
     public AdminNotification findNotificationById(ObjectId id) {
-        return findById(id);
+        ObjectId sanitizedId = validateAndSanitizeObjectId(id);
+        return findById(sanitizedId);
     }
 
-    public List<AdminNotification> getAll(){
+    // Get all notifications
+    public List<AdminNotification> getAll() {
         return findAll().list();
     }
 
-    public List<AdminNotification> getFilteredNotificationsByStatus(NotificationStatus status){
-        return find("status", status).list();
+    // Get filtered notifications by status
+    public List<AdminNotification> getFilteredNotificationsByStatus(NotificationStatus status) {
+        NotificationStatus sanitizedStatus = validateAndSanitizeStatus(status);
+        return find("status", sanitizedStatus).list();
     }
 }
