@@ -69,6 +69,7 @@ public class EventService {
         newEvent.setEventSubscription(event.getEventSubscription());
         newEvent.setMaxPartecipants(event.getMaxPartecipants());
         newEvent.setRegisterdPartecipants(0);
+        newEvent.setDescription("");
         newEvent.setSpeakers(new ArrayList<>());
         newEvent.setHost(hostName);
         newEvent.setTicketIds(new ArrayList<>());
@@ -106,7 +107,7 @@ public class EventService {
         eventRepository.updateEvent(event);
     }
 
-    public Event updateEvent(ObjectId id, Event updatedEvent, String speakerEmail) {
+    public void updateEvent(ObjectId id, Event updatedEvent) {
         // Fetch the existing event
         Event existingEvent = getExistingEvent(id);
 
@@ -116,13 +117,13 @@ public class EventService {
         // Check if the event is confirmed and throw an exception if it is
         if (existingEvent.getStatus() == EventStatus.CONFIRMED) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Cannot edit a confirmed event.").build());
+                    .entity(Map.of("message", "Cannot update a confirmed event.")).build());
         }
 
 
         // Track changes to the max participants field
         boolean maxParticipantsChanged = updatedEvent.getMaxPartecipants() > 0
-                && updatedEvent.getMaxPartecipants() != existingEvent.getMaxPartecipants();
+                                         && updatedEvent.getMaxPartecipants() != existingEvent.getMaxPartecipants();
 
         // Update editable fields
         updateEditableFields(existingEvent, updatedEvent);
@@ -147,14 +148,14 @@ public class EventService {
                     User speaker = userService.getUserByEmail(speakerRequest.getEmail());
                     if (speaker == null) {
                         throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                                .entity("User " + speakerRequest.getEmail() + " does not exist.")
+                                .entity(Map.of("message", "User " + speakerRequest.getEmail() + " does not exist."))
                                 .type(MediaType.APPLICATION_JSON)
                                 .build());
                     }
 
                     if (checkIfSpeakerRequestExists(speaker.getEmail(), existingEvent.getId())) {
                         throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                                .entity("{\"error\":\"A speaker request already exists\"}")
+                                .entity(Map.of("message", "Speaker request already exists for: " + speaker.getEmail()))
                                 .type(MediaType.APPLICATION_JSON)
                                 .build());
                     }
@@ -168,8 +169,6 @@ public class EventService {
 
         // Persist the updated event
         eventRepository.updateEvent(existingEvent);
-
-        return existingEvent;
     }
 
 
@@ -243,6 +242,9 @@ public class EventService {
         }
         if (updatedEvent.getEventSubscription() != null) {
             existingEvent.setEventSubscription(updatedEvent.getEventSubscription());
+        }
+        if (updatedEvent.getDescription() != null) {
+            existingEvent.setDescription(updatedEvent.getDescription());
         }
     }
 
@@ -674,7 +676,7 @@ public class EventService {
         eventRepository.updateEvent(event);
     }
 
-    public void deleteEvent(ObjectId id, Host host) {
+    public void deleteEvent(ObjectId id, Host host, boolean isAdmin) {
         // Check if the event exists
         Event event = eventRepository.findByIdOptional(id)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
@@ -789,4 +791,21 @@ public class EventService {
         eventRepository.deleteEvent(event);
     }
 
+    public void updateEventAsAdmin(ObjectId id, Event updatedEvent) {
+        Event existingEvent = eventRepository.findByIdOptional(id)
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "Event not found.")).build()));
+
+        // If the event is created by the Admin, update the event in all fields
+        if (Objects.equals(existingEvent.getHost(), "Admin")) {
+            updateEvent(id, updatedEvent);
+            return;
+        } else {
+            // Update editable fields
+            updateEditableFields(existingEvent, updatedEvent);
+        }
+
+        // Persist the updated event
+        eventRepository.updateEvent(existingEvent);
+    }
 }

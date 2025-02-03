@@ -17,6 +17,7 @@ public class Event {
     private String place;
     private List<User> speakers;
     private List<String> topics;
+    private String description;
     private String host;
     private String title;
     private EventStatus status;
@@ -138,16 +139,23 @@ public class Event {
         this.registerdPartecipants = registerdPartecipants;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Event event = (Event) o;
-        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(host, event.host) && Objects.equals(title, event.title) && status == event.status && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests) && Objects.equals(ticketIds, event.ticketIds);
+        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(description, event.description) && Objects.equals(host, event.host) && Objects.equals(title, event.title) && status == event.status && EventSubscription == event.EventSubscription && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests) && Objects.equals(ticketIds, event.ticketIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, startDate, endDate, place, speakers, topics, host, title, status, pendingSpeakerRequests, maxPartecipants, registerdPartecipants, ticketIds);
+        return Objects.hash(id, startDate, endDate, place, speakers, topics, description, host, title, status, EventSubscription, pendingSpeakerRequests, maxPartecipants, registerdPartecipants, ticketIds);
     }
 }

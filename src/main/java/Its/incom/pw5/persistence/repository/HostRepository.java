@@ -52,6 +52,9 @@ public class HostRepository implements PanacheMongoRepository<Host> {
         delete(host);
     }
 
+    //hostName already exist
+    public boolean hostNameExists(String name){
+        return find("name", name).firstResult() != null;
     // Check if host name exists
     public boolean hostNameExists(String name) {
         String sanitizedName = validateAndSanitizeName(name);

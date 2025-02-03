@@ -45,57 +45,47 @@ public class EventResource {
     public Response createEvent(@CookieParam("SESSION_ID") String sessionId, Event event) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "Session cookie not found."))
+                    .entity(Map.of("message", "Session ID is required."))
                     .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "Invalid session cookie."))
+                    .entity(Map.of("message", "Invalid session ID."))
                     .build();
         }
 
-        String hostName;
-
-        Host host = hostService.getHostById(session.getUserId());
-        if (host == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "User is not an host."))
-                    .build();
-        } else {
-            hostName = host.getName();
-        }
-
-        User user = userService.getUserByEmail(host.getCreatedBy());
+        // Get the user from the session
+        User user = userService.getUserById(session.getUserId());
+        Host host;
         if (user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "User not found."))
+            // Get the host from the session userId which is the host id
+            host = hostService.getHostById(session.getUserId());
+        } else {
+            if (UserStatus.VERIFIED != user.getStatus()) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "User is not verified."))
+                        .build();
+            }
+
+            // Get the host from the user
+            host = hostService.getHostByUserCreatorEmail(user.getEmail());
+        }
+
+        if (host == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Host not found."))
                     .build();
         }
 
+        Event createdEvent = eventService.createEvent(event, host.getName());
 
-        if (user.getRole() == Role.ADMIN) {
-            hostName = "Admin";
-        }
-
-        if (event == null) {
-            // Return a bad request if no event data was provided
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("message", "Event body is required."))
-                    .build();
-        }
-
-
-        Event createdEvent = eventService.createEvent(event, hostName);
-
-        Map<String, Object> responseBody = Map.of(
-                "message", "Event created successfully.",
-                "event", createdEvent
-        );
-
-        return Response.status(Response.Status.CREATED).entity(responseBody).build();
+        return Response.status(Response.Status.CREATED)
+                .entity(Map.of("message", "Event created successfully.", "event", createdEvent))
+                .build();
     }
+
     @GET
     @Path("/{id}")
     public Response getEventById(@PathParam("id") ObjectId id) {
@@ -115,27 +105,60 @@ public class EventResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
-    public Response updateEvent(@PathParam("id") ObjectId id, Event updatedEvent, @QueryParam("speakerEmail") String speakerEmail) {
-        try {
-            // Update the event
-            Event event = eventService.updateEvent(id, updatedEvent, speakerEmail);
-
-            Map<String, Object> responseBody = Map.of(
-                    "message", "Event updated successfully.",
-                    "event", event
-            );
-
-            return Response.ok(responseBody).build();
-        } catch (WebApplicationException ex) {
-            return Response.status(ex.getResponse().getStatus())
-                    .entity(Map.of("message", ex.getMessage()))
-                    .type(MediaType.APPLICATION_JSON)
-                    .build();
-        } catch (Exception ex) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("message", "An unexpected error occurred."))
+    public Response updateEventAsHost(@PathParam("id") ObjectId id, Event updatedEvent, @QueryParam("speakerEmail") String speakerEmail, @CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session ID is required."))
                     .build();
         }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session ID."))
+                    .build();
+        }
+
+        // Get the user from the session
+        User user = userService.getUserById(session.getUserId());
+        Host host;
+        if (user == null) {
+            // Get the host from the session userId which is the host id
+            host = hostService.getHostById(session.getUserId());
+        } else {
+            if (UserStatus.VERIFIED != user.getStatus()) {
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "User is not verified."))
+                        .build();
+            }
+
+            // Get the host from the user
+            host = hostService.getHostByUserCreatorEmail(user.getEmail());
+        }
+
+        if (host == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Host not found."))
+                    .build();
+        }
+
+        Event event = eventService.getEventByObjectId(id);
+        if (event == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Event not found."))
+                    .build();
+        }
+
+        // Allow update if the user is the creator of the event
+        if (!event.getHost().trim().equalsIgnoreCase(host.getName().trim())) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("message", "User is not authorized to update this event."))
+                    .build();
+        }
+
+        eventService.updateEvent(id, updatedEvent);
+
+        return Response.ok(Map.of("message", "Event updated successfully.")).build();
     }
 
     @DELETE
@@ -157,35 +180,45 @@ public class EventResource {
                     .build();
         }
 
-        Host host = hostService.getHostById(session.getUserId());
+        // Get the user from the session
+        User user = userService.getUserById(session.getUserId());
+        Host host;
+        boolean isAdmin = false;
+        if (user == null) {
+            // Get the host from the session userId which is the host id
+            host = hostService.getHostById(session.getUserId());
+        } else {
+            // Check if the user is an admin
+            isAdmin = user.getRole() == Role.ADMIN;
+
+            // Get the host from the user
+            host = hostService.getHostByUserCreatorEmail(user.getEmail());
+
+            // Check if the event exists
+            Event event = eventService.getEventByObjectId(id);
+            if (event == null) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "Event not found."))
+                        .build();
+            }
+
+            // Allow deletion if the user is either the admin or the creator of the event
+            if (!isAdmin && !event.getHost().trim().equalsIgnoreCase(host.getName().trim())) {
+                return Response.status(Response.Status.FORBIDDEN)
+                        .entity(Map.of("message", "User is not authorized to delete this event."))
+                        .build();
+            }
+        }
+
         if (host == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "User is not authorized to perform this action."))
-                    .build();
-        }
-
-        // Check if the user is an admin
-        User user = userService.getUserByEmail(host.getCreatedBy());
-        boolean isAdmin = user != null && user.getRole() == Role.ADMIN;
-
-        // Check if the event exists
-        Event event = eventService.getEventByObjectId(id);
-        if (event == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Map.of("message", "Event not found."))
-                    .build();
-        }
-
-        // Allow deletion if the user is either the admin or the creator of the event
-        if (!isAdmin && !event.getHost().trim().equalsIgnoreCase(host.getName().trim())) {
-            return Response.status(Response.Status.FORBIDDEN)
-                    .entity(Map.of("message", "User is not authorized to delete this event."))
+                    .entity("Host not found.")
                     .build();
         }
 
 
         // Proceed to delete the event
-        eventService.deleteEvent(id, host);
+        eventService.deleteEvent(id, host, isAdmin);
 
         Map<String, Object> responseBody = Map.of(
                 "message", "Event deleted successfully."
@@ -193,8 +226,6 @@ public class EventResource {
 
         return Response.ok(responseBody).build();
     }
-
-
 
     @PUT
     @Path("/book")
@@ -386,8 +417,8 @@ public class EventResource {
         List<Event> events = new ArrayList<>();
 
         if ((topics == null || topics.isEmpty()) &&
-                (date == null || date.isEmpty()) &&
-                (speakers == null || speakers.isEmpty())) {
+            (date == null || date.isEmpty()) &&
+            (speakers == null || speakers.isEmpty())) {
             events = eventService.getAllEvents();
         } else {
             if (topics != null && !topics.isEmpty()) {
@@ -419,8 +450,9 @@ public class EventResource {
 
         return Response.ok(responseBody).build();
     }
+
     @POST
-    @Path("/event-admin")
+    @Path("/admin")
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response createEventAsAdmin(@CookieParam("SESSION_ID") String sessionId, Event event) {
@@ -464,8 +496,60 @@ public class EventResource {
         return Response.status(Response.Status.CREATED).entity(responseBody).build();
     }
 
+    @PUT
+    @Path("/admin/{id}")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
+    public Response updateEventAsAdmin(@PathParam("id") ObjectId id, Event updatedEvent, @CookieParam("SESSION_ID") String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session ID is required."))
+                    .build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session ID."))
+                    .build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+
+        if (user == null) {
+            System.out.println("No user found for session ID: " + session.getUserId());
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
+        }
+
+        System.out.println("User found: " + user.getEmail() + ", Role: " + user.getRole());
+
+        if (user.getRole() == null || !Role.ADMIN.equals(user.getRole())) {
+            System.out.println("User role check failed. Expected: ADMIN, Found: " + user.getRole());
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("message", "User is not an admin."))
+                    .build();
+        }
+
+        Event event = eventService.getEventByObjectId(id);
+        if (event == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Event not found."))
+                    .build();
+        }
+
+        eventService.updateEventAsAdmin(id, updatedEvent);
+
+        Map<String, Object> responseBody = Map.of(
+                "message", "Event updated successfully by admin."
+        );
+
+        return Response.ok(responseBody).build();
+    }
+
     @DELETE
-    @Path("/event-admin/{id}")
+    @Path("/event/{id}")
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response deleteEventAsAdmin(@PathParam("id") ObjectId id, @CookieParam("SESSION_ID") String sessionId) {
