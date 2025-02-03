@@ -161,7 +161,7 @@ public class HostResource {
 
         Event event = new Event();
         event.setId(eventId);
-        event = eventService.getEventById(event);
+        event = eventService.getEventById(event.getId());
 
         //event is created by this host
         if (!event.getHost().equals(host.getEmail())) {

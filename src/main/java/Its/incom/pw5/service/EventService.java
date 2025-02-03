@@ -392,16 +392,16 @@ public class EventService {
         }
     }
 
-    public void checkAndBookEvent(Event event, User user) {
+    public void checkAndBookEvent(ObjectId eventId, User user) {
         // Check if the event is provided
-        if (event.getId() == null) {
+        if (eventId == null) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("message", "Event body is required."))
                     .build());
         }
 
         // Find the event in the database
-        Event existingEvent = eventRepository.findByIdOptional(event.getId())
+        Event existingEvent = eventRepository.findByIdOptional(eventId)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity(Map.of("message", "Event not found."))
                         .build()));
@@ -500,16 +500,16 @@ public class EventService {
         updateRegisteredParticipants();
     }
 
-    public void checkAndRevokeEvent(Event event, User user) {
+    public void checkAndRevokeEvent(ObjectId eventId, User user) {
         // Check if the event is provided
-        if (event.getId() == null) {
+        if (eventId == null) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("message", "Event body is required."))
                     .build());
         }
 
         // Find the event in the database
-        Event existingEvent = eventRepository.findByIdOptional(event.getId())
+        Event existingEvent = eventRepository.findByIdOptional(eventId)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity(Map.of("message", "Event not found."))
                         .build()));
@@ -623,8 +623,8 @@ public class EventService {
         updateRegisteredParticipants();
     }
 
-    public Event getEventById(Event eventId) {
-        return eventRepository.findByIdOptional(eventId.getId())
+    public Event getEventById(ObjectId eventId) {
+        return eventRepository.findByIdOptional(eventId)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                         .entity(Map.of("message", "Event not found."))
                         .build()));
