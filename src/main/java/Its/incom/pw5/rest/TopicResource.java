@@ -2,7 +2,6 @@ package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.Topic;
 import Its.incom.pw5.service.TopicService;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -18,8 +17,12 @@ import java.util.Map;
 @Path("/topic")
 public class TopicResource {
 
-    @Inject
-    TopicService topicService;
+    private final TopicService topicService;
+
+    public TopicResource(TopicService topicService) {
+        this.topicService = topicService;
+    }
+
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -36,7 +39,8 @@ public class TopicResource {
                     "topics", topicList
             );
 
-            return Response.ok(responseBody).build();
+            return Response.ok(responseBody)
+                    .build();
         } else {
             // Return the topic with the specified name
             Topic topic = topicService.findTopicByName(topicName);
@@ -52,7 +56,8 @@ public class TopicResource {
                     "topic", topic
             );
 
-            return Response.ok(responseBody).build();
+            return Response.ok(responseBody)
+                    .build();
         }
     }
 }

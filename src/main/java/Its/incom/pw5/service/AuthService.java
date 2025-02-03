@@ -12,10 +12,13 @@ import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @GlobalLog
 @ApplicationScoped
@@ -35,7 +38,9 @@ public class AuthService {
         String hashedPsw = hashCalculator.calculateHash(user.getHashedPsw());
 
         if (user.getFirstName() == null || user.getLastName().isBlank() || user.getLastName() == null || user.getFirstName().isBlank() || user.getEmail() == null || user.getEmail().isBlank() || hashedPsw == null || hashedPsw.isBlank()) {
-            throw new IllegalArgumentException("Missing required fields");
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Missing required fields"))
+                    .build());
         }
 
         User newUser = new User();
@@ -54,19 +59,11 @@ public class AuthService {
         authRepository.register(newUser);
     }
 
-    public User checkUserCredentials(User user) {
-        String hashedPsw = hashCalculator.calculateHash(user.getHashedPsw());
-        if (user.getEmail() == null || user.getEmail().isBlank() || hashedPsw == null || hashedPsw.isBlank()) {
-            throw new IllegalArgumentException("Missing required fields");
-        }
-
-        authRepository.login(user.getEmail(), hashedPsw);
-        return user;
-    }
     public void onStartup(@Observes StartupEvent event) {
         System.out.println("Application started, running archivePastEvents now...");
         removeExpiredVerificationTokens();
     }
+
     @Scheduled(cron = "0 0 0 * * ?")
     public void removeExpiredVerificationTokens() {
         LocalDateTime now = LocalDateTime.now();
@@ -88,7 +85,7 @@ public class AuthService {
         String subject = "Verification Token Cleanup Completed";
         String body = String.format("Cleanup complete. Removed %d expired verification tokens.%n%nDetails:%n%s",
                 expiredTokens.size(),
-                deletedTokensInfo.toString());
+                deletedTokensInfo);
         System.out.println(subject);
         System.out.println(body);
     }

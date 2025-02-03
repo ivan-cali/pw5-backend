@@ -15,7 +15,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
@@ -48,7 +47,9 @@ public class EventService {
 
     public Event createEvent(Event event, String hostName) {
         if (event.getStartDate().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Cannot create an event with a past date.");
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Event start date cannot be in the past."))
+                    .build());
         }
         // Set default status to PENDING if not provided
         if (event.getStatus() == null) {
@@ -74,14 +75,12 @@ public class EventService {
         newEvent.setHost(hostName);
         newEvent.setTicketIds(new ArrayList<>());
         newEvent.setPendingSpeakerRequests(
-                event.getPendingSpeakerRequests() != null ? new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
+                event.getPendingSpeakerRequests() != null ?
+                        new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
         );
 
         // Persist the Event to generate an ID
         eventRepository.addEvent(newEvent);
-        if (newEvent.getId() == null) {
-            throw new IllegalStateException("Failed to persist event, as the ID is null.");
-        }
 
         // Pre-create tickets if the event has a maximum number of participants
         if (newEvent.getMaxPartecipants() > 0) {
@@ -117,7 +116,8 @@ public class EventService {
         // Check if the event is confirmed and throw an exception if it is
         if (existingEvent.getStatus() == EventStatus.CONFIRMED) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("message", "Cannot update a confirmed event.")).build());
+                    .entity(Map.of("message", "Cannot update a confirmed event."))
+                    .build());
         }
 
 
@@ -149,14 +149,12 @@ public class EventService {
                     if (speaker == null) {
                         throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
                                 .entity(Map.of("message", "User " + speakerRequest.getEmail() + " does not exist."))
-                                .type(MediaType.APPLICATION_JSON)
                                 .build());
                     }
 
                     if (checkIfSpeakerRequestExists(speaker.getEmail(), existingEvent.getId())) {
                         throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                                 .entity(Map.of("message", "Speaker request already exists for: " + speaker.getEmail()))
-                                .type(MediaType.APPLICATION_JSON)
                                 .build());
                     }
 
@@ -194,12 +192,15 @@ public class EventService {
     private Event getExistingEvent(ObjectId id) {
         return eventRepository.findByIdOptional(id)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("Event not found.").build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
     }
 
     private void validateTopics(Event event) {
         if (event.getTopics() == null || event.getTopics().isEmpty()) {
-            throw new IllegalArgumentException("At least one topic is required.");
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "At least one topic is required."))
+                    .build());
         }
 
         List<String> finalTopics = new ArrayList<>();
@@ -217,7 +218,8 @@ public class EventService {
         // Check if the event has already occurred
         if (existingEvent.getStartDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event has already occurred.").build());
+                    .entity(Map.of("message", "Cannot update an event that has already occurred."))
+                    .build());
         }
     }
 
@@ -253,13 +255,15 @@ public class EventService {
         User fullSpeaker = userService.getUserByEmail(speaker.getEmail());
         if (fullSpeaker == null) {
             throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                    .entity("User " + speaker.getEmail() + " does not exist.").build());
+                    .entity(Map.of("message", "User " + speaker.getEmail() + " does not exist."))
+                    .build());
         }
 
         // Validate speaker role
         if (fullSpeaker.getRole() == null || !fullSpeaker.getRole().equals(Role.SPEAKER)) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("User " + fullSpeaker.getEmail() + " is not a speaker.").build());
+                    .entity(Map.of("message", "User " + fullSpeaker.getEmail() + " is not a speaker."))
+                    .build());
         }
 
         // Check for duplicates in the SpeakerInbox
@@ -270,7 +274,8 @@ public class EventService {
 
         if (duplicateRequest) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Speaker request already exists for: " + fullSpeaker.getEmail()).build());
+                    .entity(Map.of("message", "Speaker request already exists for: " + fullSpeaker.getEmail()))
+                    .build());
         }
 
         // Create a new SpeakerInbox entry with PENDING status
@@ -391,18 +396,21 @@ public class EventService {
         // Check if the event is provided
         if (event.getId() == null) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event body is required.").build());
+                    .entity(Map.of("message", "Event body is required."))
+                    .build());
         }
 
         // Find the event in the database
         Event existingEvent = eventRepository.findByIdOptional(event.getId())
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("Event not found.").build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
 
         // Check if the user is a speaker for the event
         if (existingEvent.getSpeakers().stream().anyMatch(speaker -> speaker.getEmail().equals(user.getEmail()))) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("User is a speaker for this event.").build());
+                    .entity(Map.of("message", "Speaker cannot book their own event."))
+                    .build());
         }
 
         // Check if the user has already booked the event (compare ObjectId)
@@ -411,19 +419,22 @@ public class EventService {
 
         if (alreadyBooked) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("User has already booked this event.").build());
+                    .entity(Map.of("message", "User has already booked this event."))
+                    .build());
         }
 
         // Check if the event is CONFIRMED or ARCHIVED
         if (existingEvent.getStatus() != EventStatus.CONFIRMED) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event is not confirmed.").build());
+                    .entity(Map.of("message", "Event is not confirmed."))
+                    .build());
         }
 
         // Check if the event has already occurred
         if (existingEvent.getEndDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event has already occurred.").build());
+                    .entity(Map.of("message", "Event has already occurred."))
+                    .build());
         }
 
         // Check if the event is full. If the event is full, the user will be put on a waiting list.
@@ -437,14 +448,16 @@ public class EventService {
             // Check if the user is already on the waiting list
             if (waitingList.getWaitingUsers().contains(user.getEmail())) {
                 throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                        .entity("User is already on the waiting list.").build());
+                        .entity(Map.of("message", "User is already on the waiting list."))
+                        .build());
             }
 
             // Add the user to the waiting list
             waitingListService.addUserToWaitingList(waitingList, user);
 
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event is full. User added to waiting list.").build());
+                    .entity(Map.of("message", "Event is full. User added to waiting list."))
+                    .build());
         }
         // If the event has a limited number of participants, assign an unassigned ticket
         Ticket assignedTicket;
@@ -456,7 +469,8 @@ public class EventService {
 
             if (assignedTicket == null) {
                 throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                        .entity("No available tickets for this event.").build());
+                        .entity(Map.of("message", "No available tickets for this event."))
+                        .build());
             }
 
             // Assign the ticket to the user
@@ -490,13 +504,15 @@ public class EventService {
         // Check if the event is provided
         if (event.getId() == null) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event body is required.").build());
+                    .entity(Map.of("message", "Event body is required."))
+                    .build());
         }
 
         // Find the event in the database
         Event existingEvent = eventRepository.findByIdOptional(event.getId())
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("Event not found.").build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
 
         // Check if the user has already booked the event
         boolean isEventBooked = user.getUserDetails().getBookedEvents().stream()
@@ -504,20 +520,23 @@ public class EventService {
 
         if (!isEventBooked) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("User has not booked this event.").build());
+                    .entity(Map.of("message", "User has not booked this event."))
+                    .build());
         }
 
         // Check if the event has already occurred or is ARCHIVED
         if (existingEvent.getEndDate().isBefore(LocalDateTime.now()) || existingEvent.getStatus() == EventStatus.ARCHIVED) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Event has already occurred.").build());
+                    .entity(Map.of("message", "Event has already occurred or is archived."))
+                    .build());
         }
 
         // Check if the event starts within the next two weeks
         LocalDateTime twoWeeksFromNow = LocalDateTime.now().plusWeeks(2);
         if (existingEvent.getStartDate().isBefore(twoWeeksFromNow)) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Cannot revoke booking within two weeks of event start.").build());
+                    .entity(Map.of("message", "Event starts within the next two weeks."))
+                    .build());
         }
 
         // Find the user's ticket for this event
@@ -527,14 +546,15 @@ public class EventService {
         // Check if the ticket exists
         if (ticketToUpdate == null) {
             throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                    .entity("Ticket not found for user " + user.getEmail() + " and event " + existingEvent.getTitle()).build());
+                    .entity(Map.of("message", "Ticket not found."))
+                    .build());
         }
 
         // Nullify the user ID to revoke the ticket's assignment
         ticketRepository.nullifyUserId(ticketToUpdate);
         Ticket existingTicket = ticketRepository.findByIdOptional(ticketToUpdate.getId())
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("Ticket not found with ID: " + ticketToUpdate.getId())
+                        .entity(Map.of("message", "Ticket not found."))
                         .build()));
 
         // Refresh the ticket code
@@ -606,7 +626,8 @@ public class EventService {
     public Event getEventById(Event eventId) {
         return eventRepository.findByIdOptional(eventId.getId())
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("Event not found.").build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
     }
 
     @Scheduled(cron = "0 0 0 * * ?")  // Runs every day at midnight
@@ -630,7 +651,7 @@ public class EventService {
             }
 
             // Update the registered participants field with the ticket count
-            event.setRegisterdPartecipants((int) ticketCount);
+            event.setRegisterdPartecipants(registeredParticipants);
 
             // Persist the updated event
             eventRepository.updateEvent(event);
@@ -680,12 +701,14 @@ public class EventService {
         // Check if the event exists
         Event event = eventRepository.findByIdOptional(id)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("Event not found.").build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
 
         // Check if the host is authorized to delete the event
         if (!Objects.equals(event.getHost(), host.getName())) {
             throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User is not authorized to delete this event.").build());
+                    .entity(Map.of("message", "Host is not authorized to delete the event."))
+                    .build());
         }
 
         // Remove the event from host both programmed (if CONFIRMED) and past (if ARCHIVED) events
@@ -739,7 +762,8 @@ public class EventService {
             for (ObjectId ticketIds : event.getTicketIds()) {
                 Ticket ticket = ticketRepository.findByIdOptional(ticketIds)
                         .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                                .entity("Ticket not found.").build()));
+                                .entity(Map.of("message", "Ticket not found."))
+                                .build()));
                 ticketRepository.delete(ticket);
             }
         } else {
@@ -780,13 +804,15 @@ public class EventService {
     public Event getEventByObjectId(ObjectId id) {
         return eventRepository.findByIdOptional(id)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity(Map.of("message", "Event not found.")).build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
     }
 
     public void deleteEventAsAdmin(ObjectId id) {
         Event event = eventRepository.findByIdOptional(id)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity("Event not found.").build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
 
         eventRepository.deleteEvent(event);
     }
@@ -794,7 +820,8 @@ public class EventService {
     public void updateEventAsAdmin(ObjectId id, Event updatedEvent) {
         Event existingEvent = eventRepository.findByIdOptional(id)
                 .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity(Map.of("message", "Event not found.")).build()));
+                        .entity(Map.of("message", "Event not found."))
+                        .build()));
 
         // If the event is created by the Admin, update the event in all fields
         if (Objects.equals(existingEvent.getHost(), "Admin")) {

@@ -8,7 +8,6 @@ import Its.incom.pw5.persistence.repository.HostRepository;
 import Its.incom.pw5.rest.model.PasswordEditRequest;
 import Its.incom.pw5.service.exception.*;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
@@ -22,14 +21,15 @@ import java.util.Objects;
 @GlobalLog
 @ApplicationScoped
 public class HostService {
-    @Inject
-    HostRepository hostRepository;
-    @Inject
-    HashCalculator hashCalculator;
+    private final HostRepository hostRepository;
+    private final UserService userService;
+    private final HashCalculator hashCalculator;
 
-    @Inject
-    UserService userService;
-
+    public HostService(HostRepository hostRepository, UserService userService, HashCalculator hashCalculator) {
+        this.hostRepository = hostRepository;
+        this.userService = userService;
+        this.hashCalculator = hashCalculator;
+    }
 
     //get all hosts
     public List<Host> getAll() throws HostNotFoundException {
@@ -55,7 +55,7 @@ public class HostService {
             newHost.setCreatedBy(user.getEmail());
             newHost.setHostStatus(HostStatus.PENDING);
 
-            if (host.getType() == null || host.getType().toString().isEmpty() || host.getName() == null || host.getName().isEmpty() || host.getEmail() == null|| host.getEmail().isEmpty()) {
+            if (host.getType() == null || host.getType().toString().isEmpty() || host.getName() == null || host.getName().isEmpty() || host.getEmail() == null || host.getEmail().isEmpty()) {
                 throw new IllegalArgumentException("Form cannot have empty fields");
             }
 
@@ -65,7 +65,7 @@ public class HostService {
             }
 
             //check if host name already exists
-            if (hostRepository.hostNameExists(newHost.getName())){
+            if (hostRepository.hostNameExists(newHost.getName())) {
                 throw new HostAlreadyExistsException("Host with name " + newHost.getName() + " already exists");
             }
 
@@ -84,7 +84,7 @@ public class HostService {
             if (host == null) {
                 throw new HostNotFoundException("Host not found");
             }
-            hostRepository.delete(host);
+            hostRepository.deleteHost(host);
         } catch (PersistenceException e) {
             throw new HostDeleteException(e.getMessage());
         }
@@ -98,18 +98,16 @@ public class HostService {
 
             //check string newPsw
             if (newPsw == null || newPsw.isEmpty()) {
-                Map<String, Object> responseBody = Map.of(
-                        "message", "New password not provided"
-                );
-                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "New password not provided"))
+                        .build());
             }
 
             //check string oldPsw
             if (oldPsw == null || oldPsw.isEmpty()) {
-                Map<String, Object> responseBody = Map.of(
-                        "message", "Old password not provided"
-                );
-                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Old password not provided"))
+                        .build());
             }
 
             //password hashing
@@ -117,17 +115,15 @@ public class HostService {
             String oldHashedPsw = hashCalculator.calculateHash(oldPsw);
 
             if (!Objects.equals(oldHashedPsw, host.getHashedPsw())) {
-                Map<String, Object> responseBody = Map.of(
-                        "message", "Old password is incorrect"
-                );
-                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Old password is incorrect"))
+                        .build());
             }
 
             if (Objects.equals(newHashedPsw, host.getHashedPsw())) {
-                Map<String, Object> responseBody = Map.of(
-                        "message", "New password cannot be the same as the old password"
-                );
-                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).entity(responseBody).build());
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "New password cannot be the same as the old password"))
+                        .build());
             }
 
             //update the old generated password with the new password
@@ -149,7 +145,7 @@ public class HostService {
         hostRepository.updateHost(newHost);
     }
 
-    public void rejectHostRequest(Host rejectedHost){
+    public void rejectHostRequest(Host rejectedHost) {
         rejectedHost.setHostStatus(HostStatus.REJECTED);
         hostRepository.updateHost(rejectedHost);
     }
@@ -158,7 +154,7 @@ public class HostService {
         return hostRepository.findByEmail(hostEmail);
     }
 
-    public Host getHostByUserCreatorEmail(String userCreatorEmail){
+    public Host getHostByUserCreatorEmail(String userCreatorEmail) {
         return hostRepository.getByUserCreatorEmail(userCreatorEmail);
     }
 
@@ -168,18 +164,6 @@ public class HostService {
 
     public void updateEvents(Host host) {
         hostRepository.updateHost(host);
-    }
-
-    public boolean isPasswordMatching(String hashedPsw, String provvisoryPsw, String inputPassword) {
-        if (hashedPsw == null || inputPassword == null) {
-            return false;
-        }
-
-        // Hash the input password
-        String hashedInputPsw = hashCalculator.calculateHash(inputPassword);
-
-        // Compare the input password with both stored passwords
-        return hashedInputPsw.equals(hashedPsw) || (provvisoryPsw != null && hashedInputPsw.equals(provvisoryPsw));
     }
 
 
@@ -195,7 +179,9 @@ public class HostService {
 
         // Check if the host is still using the provisional password
         if (validHost.getProvvisoryPsw() != null && hashedInputPassword.equals(validHost.getProvvisoryPsw())) {
-            throw new IllegalStateException("You must change your provisional password.");
+            throw new WebApplicationException(Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("message", "You must change your provisional password before logging in."))
+                    .build());
         }
 
         // Compare with the main hashed password

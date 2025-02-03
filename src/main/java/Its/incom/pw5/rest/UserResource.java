@@ -27,7 +27,7 @@ public class UserResource {
     private final TopicService topicService;
     private final HashCalculator hashCalculator;
 
-    public UserResource(UserService userService,HashCalculator hashCalculator, SessionService sessionService, HostService hostService, MailService mailService, NotificationService notificationService, TopicService topicService) {
+    public UserResource(UserService userService, HashCalculator hashCalculator, SessionService sessionService, HostService hostService, MailService mailService, NotificationService notificationService, TopicService topicService) {
         this.userService = userService;
         this.sessionService = sessionService;
         this.hashCalculator = hashCalculator;
@@ -75,7 +75,8 @@ public class UserResource {
                 "users", userList
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
 
@@ -124,7 +125,8 @@ public class UserResource {
                 "message", "User deleted successfully."
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @PUT
@@ -174,7 +176,8 @@ public class UserResource {
                     "user", user
             );
 
-            return Response.ok(responseBody).build();
+            return Response.ok(responseBody)
+                    .build();
         } else {
             userService.updateUserToSpeaker(user);
             user = userService.getUserById(user.getId().toHexString()); // Fetch updated user object
@@ -184,7 +187,8 @@ public class UserResource {
                     "user", user
             );
 
-            return Response.ok(responseBody).build();
+            return Response.ok(responseBody)
+                    .build();
         }
     }
 
@@ -201,7 +205,8 @@ public class UserResource {
                 "speakers", speakers
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     //all notifications for new host creation
@@ -239,7 +244,8 @@ public class UserResource {
                 "notifications", notifications
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     //all notification filtered by status
@@ -277,10 +283,9 @@ public class UserResource {
                 "notifications", notifications
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
-
-
 
 
     //new host approval by admin
@@ -334,7 +339,8 @@ public class UserResource {
                 "hostRequest", hostRequest
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     //new host rejection by admin
@@ -386,7 +392,8 @@ public class UserResource {
                 "hostRequest", hostRequest
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     //Add a topic to user favourite topic list
@@ -396,7 +403,7 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
-    public Response addFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
+    public Response addFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("message", "Session cookie not found."))
@@ -428,7 +435,8 @@ public class UserResource {
                 "topic", updatedUser
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     //Remove a topic to user favourite topic list
@@ -438,7 +446,7 @@ public class UserResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
-    public Response removeFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId){
+    public Response removeFavouriteTopic(@CookieParam("SESSION_ID") String sessionId, @PathParam("topicId") ObjectId topicId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("message", "Session cookie not found."))
@@ -468,7 +476,8 @@ public class UserResource {
                 "user", updatedUser
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     //Get all user favourite topic
@@ -500,6 +509,7 @@ public class UserResource {
                 "favouriteTopics", userFavouriteTopics
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 }

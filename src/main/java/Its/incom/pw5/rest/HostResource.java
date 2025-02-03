@@ -9,7 +9,6 @@ import Its.incom.pw5.rest.model.PasswordEditRequest;
 import Its.incom.pw5.service.*;
 import Its.incom.pw5.service.exception.HostNotFoundException;
 import Its.incom.pw5.service.exception.HostUpdateException;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
@@ -26,17 +25,17 @@ import java.util.Map;
 
 @Path("/host")
 public class HostResource {
-    //class injection
-    @Inject
-    HostService hostService;
-    @Inject
-    MailService mailService;
-    @Inject
-    SessionService sessionService;
-    @Inject
-    UserService userService;
-    @Inject
-    EventService eventService;
+    private final HostService hostService;
+    private final SessionService sessionService;
+    private final UserService userService;
+    private final EventService eventService;
+
+    public HostResource(HostService hostService, SessionService sessionService, UserService userService, EventService eventService) {
+        this.hostService = hostService;
+        this.sessionService = sessionService;
+        this.userService = userService;
+        this.eventService = eventService;
+    }
 
     //get all hosts
     @GET
@@ -69,17 +68,23 @@ public class HostResource {
         try {
             //find user session
             if (sessionId == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "Session cookie not found."))
+                        .build();
             }
 
             Session session = sessionService.getSession(sessionId);
             if (session == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "Invalid session cookie."))
+                        .build();
             }
 
             User user = userService.getUserById(session.getUserId());
             if (user == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "User not found."))
+                        .build();
             }
 
             Host host = hostService.getHostByUserCreatorEmail(user.getEmail());
@@ -112,11 +117,17 @@ public class HostResource {
 
             return Response.ok(responseBody).cookie(sessionCookie).build();
         } catch (HostNotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
         } catch (HostUpdateException e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
         }
     }
 
@@ -129,17 +140,23 @@ public class HostResource {
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     public Response confirmEvent(@CookieParam("SESSION_ID") String sessionId, @PathParam("id") ObjectId eventId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         Host host = hostService.getHostById(session.getUserId());
         if (host == null) {
-            return Response.status(Response.Status.NOT_FOUND).entity("Host not found.").build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Host not found."))
+                    .build();
         }
 
         Event event = new Event();
@@ -148,17 +165,23 @@ public class HostResource {
 
         //event is created by this host
         if (!event.getHost().equals(host.getEmail())) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity(host.getName() + " isn't the creator of " + event.getTitle()).build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Unauthorized access."))
+                    .build();
         }
 
         //check event status is still PENDING
         if (!event.getStatus().equals(EventStatus.PENDING)) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(event.getTitle() + " already confirmed.").build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Event status is not PENDING."))
+                    .build();
         }
 
         //User in speakers list are speakers with status already confirmed
         if (event.getSpeakers() == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(event.getTitle() + " doesn't have confirmed speakers.").build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Speakers list is empty."))
+                    .build();
         }
 
         //update event status and host programmed events
@@ -189,17 +212,23 @@ public class HostResource {
     public Response updateDescription(@CookieParam("SESSION_ID") String sessionId, Host host) {
         try {
             if (sessionId == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "Session cookie not found."))
+                        .build();
             }
 
             Session session = sessionService.getSession(sessionId);
             if (session == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "Invalid session cookie."))
+                        .build();
             }
 
             Host loggedHost = hostService.getHostById(session.getUserId());
             if (host == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity("Host not found.").build();
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "Host not found."))
+                        .build();
             }
 
             hostService.updateDescription(loggedHost, host.getDescription());
@@ -210,7 +239,9 @@ public class HostResource {
 
             return Response.ok(responseBody).build();
         } catch (IllegalArgumentException e) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
         }
     }
 }

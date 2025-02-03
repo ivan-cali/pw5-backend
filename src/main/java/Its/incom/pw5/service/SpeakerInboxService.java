@@ -9,28 +9,28 @@ import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
 import Its.incom.pw5.persistence.repository.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @GlobalLog
 @ApplicationScoped
 public class SpeakerInboxService {
+    private final SpeakerInboxRepository speakerInboxRepository;
+    private final EventRepository eventRepository;
+    private final UserRepository userRepository;
+    private final SessionService sessionService;
 
-    @Inject
-    SpeakerInboxRepository speakerInboxRepository;
-
-    @Inject
-    UserRepository userRepository;
-
-    @Inject
-    EventRepository eventRepository;
-
-    @Inject
-    SessionService sessionService;
+    public SpeakerInboxService(SpeakerInboxRepository speakerInboxRepository, EventRepository eventRepository, UserRepository userRepository, SessionService sessionService) {
+        this.speakerInboxRepository = speakerInboxRepository;
+        this.eventRepository = eventRepository;
+        this.userRepository = userRepository;
+        this.sessionService = sessionService;
+    }
 
     public SpeakerInbox confirmRequest(ObjectId inboxId) {
         return updateRequestStatusIfPending(inboxId, SpeakerInboxStatus.CONFIRMED);
@@ -43,16 +43,22 @@ public class SpeakerInboxService {
     private SpeakerInbox updateRequestStatusIfPending(ObjectId inboxId, SpeakerInboxStatus newStatus) {
         // Fetch the SpeakerInbox entry
         SpeakerInbox inbox = speakerInboxRepository.findByIdOptional(inboxId)
-                .orElseThrow(() -> new WebApplicationException("SpeakerInbox not found", 404));
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("error", "Speaker request not found."))
+                        .build()));
 
         // Ensure the current status is PENDING
         if (!inbox.getStatus().equals(SpeakerInboxStatus.PENDING)) {
-            throw new WebApplicationException("Cannot update status. Current status is not PENDING.", 400);
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Request is not pending."))
+                    .build());
         }
 
         // Fetch the related event
         Event eventToConfirm = eventRepository.findByIdOptional(inbox.getEventId())
-                .orElseThrow(() -> new WebApplicationException("Event not found", 404));
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("error", "Event not found for the request."))
+                        .build()));
 
         // Check for overlapping events if the new status is CONFIRMED
         if (newStatus == SpeakerInboxStatus.CONFIRMED) {
@@ -60,12 +66,16 @@ public class SpeakerInboxService {
 
             for (SpeakerInbox confirmedRequest : confirmedRequests) {
                 Event confirmedEvent = eventRepository.findByIdOptional(confirmedRequest.getEventId())
-                        .orElseThrow(() -> new WebApplicationException("Event not found for confirmed request", 404));
+                        .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                                .entity(Map.of("error", "Event not found for the request."))
+                                .build()));
 
                 // Check for date overlap
                 if (datesOverlap(eventToConfirm.getStartDate(), eventToConfirm.getEndDate(),
                         confirmedEvent.getStartDate(), confirmedEvent.getEndDate())) {
-                    throw new WebApplicationException("You are already scheduled to participate in another event during this time.", 400);
+                    throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                            .entity(Map.of("error", "Event dates overlap with another confirmed event."))
+                            .build());
                 }
             }
         }
@@ -87,7 +97,9 @@ public class SpeakerInboxService {
         if (newStatus == SpeakerInboxStatus.CONFIRMED) {
             User speaker = userRepository.getUserByEmail(inbox.getSpeakerEmail());
             if (speaker == null) {
-                throw new WebApplicationException("User not found", 404);
+                throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("error", "Speaker not found."))
+                        .build());
             }
 
             // Check if the speaker is already in the list
@@ -120,7 +132,9 @@ public class SpeakerInboxService {
         String userEmail = sessionService.findEmailBySessionCookie(sessionCookie);
 
         if (userEmail == null || userEmail.isBlank()) {
-            throw new IllegalArgumentException("Invalid session or user email not found.");
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Invalid session cookie or user not found."))
+                    .build());
         }
 
         if (requestStatus == null) {
@@ -130,9 +144,5 @@ public class SpeakerInboxService {
             // Fetch and return the SpeakerInbox requests filtered by the requests status for this email
             return speakerInboxRepository.getRequestsByStatus(requestStatus);
         }
-    }
-
-    public void deleteRequest(ObjectId inboxId) {
-        speakerInboxRepository.deleteRequest(inboxId);
     }
 }

@@ -1,7 +1,6 @@
 package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.*;
-import Its.incom.pw5.persistence.model.enums.Type;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.service.*;
 import Its.incom.pw5.service.exception.HostAlreadyExistsException;
@@ -13,11 +12,8 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
 
-import javax.management.Notification;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
 
 
 @Path("/auth")
@@ -68,7 +64,7 @@ public class AuthResource {
         if (validUser == null) {
             // Authentication failed
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid credentials.")
+                    .entity(Map.of("message", "Invalid credentials."))
                     .build();
         }
         Session session = sessionService.createOrReuseSession(String.valueOf(validUser.getId()));
@@ -100,21 +96,21 @@ public class AuthResource {
     public Response getAuthenticatedUser(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session cookie not found.")
+                    .entity(Map.of("message", "Session cookie not found."))
                     .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session cookie.")
+                    .entity(Map.of("message", "Invalid session cookie."))
                     .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("User not found.")
+                    .entity(Map.of("message", "User not found."))
                     .build();
         }
 
@@ -134,14 +130,14 @@ public class AuthResource {
         VerificationToken verificationToken = mailService.getVerificationToken(token);
         if (verificationToken == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Token not found.")
+                    .entity(Map.of("message", "Token not found."))
                     .build();
         }
 
         User user = userService.getUserByEmail(verificationToken.getEmail());
         if (user == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("User not found.")
+                    .entity(Map.of("message", "User not found."))
                     .build();
         }
 
@@ -162,26 +158,28 @@ public class AuthResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public Response sendConfirmationMail(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
         }
 
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("User not found.").build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "User not found."))
+                    .build();
         }
 
         if (user.getStatus() == UserStatus.VERIFIED) {
-            Map<String, Object> responseBody = Map.of(
-                    "message", "User is already verified."
-            );
-
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(responseBody)
+                    .entity(Map.of("message", "User is already verified."))
                     .build();
         }
 
@@ -204,7 +202,7 @@ public class AuthResource {
     public Response logout(@CookieParam("SESSION_ID") String sessionCookie) {
         if (sessionCookie == null || sessionCookie.isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Session cookie is missing.")
+                    .entity(Map.of("message", "Session cookie not found."))
                     .build();
         }
 
@@ -212,14 +210,14 @@ public class AuthResource {
         if (success) {
             // Invalidate the cookie in the response
             return Response.status(Response.Status.OK)
-                    .entity("User successfully logged out.")
+                    .entity(Map.of("message", "Successfully logged out."))
                     .cookie(
                             NewCookie.valueOf("SESSION_ID=; Path=/; HttpOnly; Max-Age=0")
                     )
                     .build();
         } else {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Session not found or already invalidated.")
+                    .entity(Map.of("message", "Session not found."))
                     .build();
         }
     }
@@ -234,17 +232,23 @@ public class AuthResource {
     public Response registerHost(@CookieParam("SESSION_ID") String sessionId, Host host) {
         try {
             if (sessionId == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "Session cookie not found."))
+                        .build();
             }
 
             Session session = sessionService.getSession(sessionId);
             if (session == null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "Invalid session cookie."))
+                        .build();
             }
 
             // Check if sessions provides a Host
             if (hostService.getHostById(session.getUserId()) != null) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Host cannot create a new host.").build();
+                return Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "User is already a host."))
+                        .build();
             }
 
             hostService.create(session.getUserId(), host);
@@ -263,11 +267,17 @@ public class AuthResource {
                     .entity(responseBody)
                     .build();
         } catch (HostAlreadyExistsException e) {
-            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
+            return Response.status(Response.Status.CONFLICT)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
         } catch (HostCreationException e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
         } catch (NotFoundException e) {
-            return Response.status(Response.Status.NOT_FOUND).entity(e.getMessage()).build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
         }
     }
 
@@ -281,14 +291,14 @@ public class AuthResource {
         try {
             if (host.getEmail() == null || host.getHashedPsw() == null) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("Email and password must be provided.")
+                        .entity(Map.of("message", "Email and password are required."))
                         .build();
             }
 
             // Validate the login
             if (!hostService.isValidHostLogin(host.getEmail(), host.getHashedPsw())) {
                 return Response.status(Response.Status.UNAUTHORIZED)
-                        .entity("Invalid credentials.")
+                        .entity(Map.of("message", "Invalid credentials."))
                         .build();
             }
 
@@ -327,14 +337,14 @@ public class AuthResource {
     public Response getAuthenticatedHost(@CookieParam("SESSION_ID") String sessionId) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session cookie not found.")
+                    .entity(Map.of("message", "Session cookie not found."))
                     .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session cookie.")
+                    .entity(Map.of("message", "Invalid session cookie."))
                     .build();
         }
 
@@ -351,7 +361,7 @@ public class AuthResource {
 
         if (host == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Host not found.")
+                    .entity(Map.of("message", "Host not found."))
                     .build();
         }
 

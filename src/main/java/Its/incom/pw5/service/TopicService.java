@@ -7,22 +7,24 @@ import Its.incom.pw5.persistence.model.UserDetails;
 import Its.incom.pw5.persistence.repository.TopicRepository;
 import Its.incom.pw5.service.exception.InvalidTopicNameException;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @GlobalLog
 @ApplicationScoped
 public class TopicService {
+    private final TopicRepository topicRepository;
+    private final UserService userService;
 
-    @Inject
-    TopicRepository topicRepository;
-    @Inject
-    UserService userService;
+    public TopicService(TopicRepository topicRepository, UserService userService) {
+        this.topicRepository = topicRepository;
+        this.userService = userService;
+    }
 
     public Topic findOrCreateTopic(String topicName) {
         if (topicName == null || topicName.trim().isEmpty()) {
@@ -66,7 +68,9 @@ public class TopicService {
 
         //check if the topic to add in favourite topic list doesn't already exist
         if (topicRepository.isAlreadyAFavourite(favouriteTopics, topic.getId())) {
-            throw new IllegalArgumentException(topic.getName() + " is already a favourite topic.");
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Topic already exists in the favourite list"))
+                    .build());
         }
 
         //update the user with the new favourite topic list
@@ -80,7 +84,9 @@ public class TopicService {
         // Check if the topic provided exist in the user favouriteTopics list
         boolean isAlreadyAFavourite = topicRepository.isAlreadyAFavourite(user.getUserDetails().getFavouriteTopics(), topic.getId());
         if (!isAlreadyAFavourite) {
-            throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).entity("Topic not found in the list").build());
+            throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Topic not found in the favourite list"))
+                    .build());
         }
 
         // Update favourite topics list

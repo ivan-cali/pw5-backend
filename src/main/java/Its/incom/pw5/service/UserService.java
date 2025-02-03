@@ -1,15 +1,18 @@
 package Its.incom.pw5.service;
 
 import Its.incom.pw5.interceptor.GlobalLog;
+import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
 import Its.incom.pw5.persistence.repository.UserRepository;
 import Its.incom.pw5.rest.model.SpeakerResponse;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
-import Its.incom.pw5.persistence.model.User;
 
 import java.util.List;
+import java.util.Map;
 
 @GlobalLog
 @ApplicationScoped
@@ -24,7 +27,9 @@ public class UserService {
 
     public void deleteUser(String id) {
         if (id == null) {
-            throw new IllegalArgumentException("Id cannot be null");
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "User id cannot be null."))
+                    .build());
         }
         ObjectId objectId = new ObjectId(id);
         userRepository.deleteUserById(objectId);

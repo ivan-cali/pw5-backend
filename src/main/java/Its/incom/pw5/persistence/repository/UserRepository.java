@@ -1,8 +1,8 @@
 package Its.incom.pw5.persistence.repository;
 
 import Its.incom.pw5.persistence.model.User;
-import Its.incom.pw5.service.exception.InvalidInputException;
 import Its.incom.pw5.persistence.model.enums.Role;
+import Its.incom.pw5.service.exception.InvalidInputException;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;

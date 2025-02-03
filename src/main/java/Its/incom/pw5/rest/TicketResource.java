@@ -1,12 +1,12 @@
 package Its.incom.pw5.rest;
 
 import Its.incom.pw5.persistence.model.Session;
+import Its.incom.pw5.persistence.model.Ticket;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.rest.model.ConfirmTicketRequest;
+import Its.incom.pw5.rest.model.ConfirmTicketResponse;
 import Its.incom.pw5.service.SessionService;
 import Its.incom.pw5.service.TicketService;
-import Its.incom.pw5.persistence.model.Ticket;
-import Its.incom.pw5.rest.model.ConfirmTicketResponse;
 import Its.incom.pw5.service.UserService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -40,20 +40,18 @@ public class TicketResource {
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response confirmTicket(
-            @CookieParam("SESSION_ID") String sessionId,
-            @Valid ConfirmTicketRequest request) {
+    public Response confirmTicket(@CookieParam("SESSION_ID") String sessionId, @Valid ConfirmTicketRequest request) {
 
         if (sessionId == null || sessionId.isBlank()) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Session ID is required.")
+                    .entity(Map.of("message", "Session ID is required."))
                     .build();
         }
 
         Session session = sessionService.getSession(sessionId);
         if (session == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("Invalid session ID.")
+                    .entity(Map.of("message", "Invalid session ID."))
                     .build();
         }
 
@@ -61,7 +59,7 @@ public class TicketResource {
         User user = userService.getUserById(session.getUserId());
         if (user == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity("User not found.")
+                    .entity(Map.of("message", "User not found."))
                     .build();
         }
 
@@ -76,17 +74,17 @@ public class TicketResource {
                 "ticket", new ConfirmTicketResponse(confirmedTicket)
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
+
     @DELETE
     @Path("/delete")
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response deleteTicket(
-            @CookieParam("SESSION_ID") String sessionId,
-            Map<String, String> requestBody) {
+    public Response deleteTicket(@CookieParam("SESSION_ID") String sessionId, Map<String, String> requestBody) {
 
         if (sessionId == null || sessionId.isBlank()) {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -134,7 +132,8 @@ public class TicketResource {
                     "message", "Ticket deleted successfully."
             );
 
-            return Response.ok(responseBody).build();
+            return Response.ok(responseBody)
+                    .build();
         } catch (WebApplicationException e) {
             return Response.status(e.getResponse().getStatus())
                     .entity(Map.of("message", e.getMessage()))

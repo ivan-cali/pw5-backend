@@ -14,11 +14,13 @@ import java.util.UUID;
 @ApplicationScoped
 public class SessionService {
 
-    @Inject
-    SessionRepository sessionRepository;
+    private final SessionRepository sessionRepository;
+    private final UserService userService;
 
-    @Inject
-    UserService userService;
+    public SessionService(SessionRepository sessionRepository, UserService userService) {
+        this.sessionRepository = sessionRepository;
+        this.userService = userService;
+    }
 
     public Session createOrReuseSession(String objectId) {
         // Debugging: Log the objectId being searched
@@ -64,7 +66,6 @@ public class SessionService {
     }
 
 
-
     public Session getSessionByCookieValue(String cookieValue) {
         return sessionRepository.find("cookieValue", cookieValue).firstResult();
     }
@@ -78,11 +79,6 @@ public class SessionService {
             return true;
         }
         return false; // If no session was found, return false
-    }
-
-    public String findIdBySessionCookie(String cookieValue) {
-        Session session = getSessionByCookieValue(cookieValue);
-        return (session != null) ? session.getUserId() : null;
     }
 
     public String findEmailBySessionCookie(String cookieValue) {

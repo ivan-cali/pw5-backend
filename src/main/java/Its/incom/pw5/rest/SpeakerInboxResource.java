@@ -3,7 +3,6 @@ package Its.incom.pw5.rest;
 import Its.incom.pw5.persistence.model.SpeakerInbox;
 import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
 import Its.incom.pw5.service.SpeakerInboxService;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -20,9 +19,12 @@ import java.util.Map;
 @Counted(name = "api_calls_total", description = "Total number of API calls")
 @Timed(name = "api_call_duration", description = "Time taken to process API calls")
 public class SpeakerInboxResource {
+    private final SpeakerInboxService speakerInboxService;
 
-    @Inject
-    SpeakerInboxService speakerInboxService;
+    public SpeakerInboxResource(SpeakerInboxService speakerInboxService) {
+        this.speakerInboxService = speakerInboxService;
+    }
+
 
     @PUT
     @Path("/{inboxId}/confirm")
@@ -81,13 +83,21 @@ public class SpeakerInboxResource {
     public Response getMyRequests(@CookieParam("SESSION_ID") String sessionCookie, @QueryParam("status") SpeakerInboxStatus requestStatus) {
         try {
             if (sessionCookie == null || sessionCookie.isBlank()) {
-                throw new WebApplicationException("Session cookie is required", 401);
+                throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                        .entity(Map.of("message", "You must be logged in to access this resource."))
+                        .build());
             }
 
             List<SpeakerInbox> userRequests = speakerInboxService.getRequestsForUser(sessionCookie, requestStatus);
 
             if (userRequests == null || userRequests.isEmpty()) {
-                return Response.ok(Map.of("message", "You have 0 requests.")).build();
+                Map<String, Object> responseBody = Map.of(
+                        "message", "You have 0 requests.",
+                        "requests", List.of()
+                );
+
+                return Response.ok(responseBody)
+                        .build();
             }
 
             Map<String, Object> responseBody = Map.of(
@@ -95,7 +105,8 @@ public class SpeakerInboxResource {
                     "requests", userRequests
             );
 
-            return Response.ok(responseBody).build();
+            return Response.ok(responseBody)
+                    .build();
         } catch (WebApplicationException ex) {
             return Response.status(ex.getResponse().getStatus())
                     .entity(Map.of("message", ex.getMessage()))

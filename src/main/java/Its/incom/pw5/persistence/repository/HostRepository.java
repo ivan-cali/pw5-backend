@@ -48,7 +48,7 @@ public class HostRepository implements PanacheMongoRepository<Host> {
     }
 
     // Delete a host
-    public void delete(Host host) {
+    public void deleteHost(Host host) {
         delete(host);
     }
 

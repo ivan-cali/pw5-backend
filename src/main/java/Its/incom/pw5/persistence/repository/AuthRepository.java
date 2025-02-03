@@ -27,7 +27,7 @@ public class AuthRepository implements PanacheMongoRepository<User> {
 
         // Check if the user already exists
         if (find("email", sanitizedEmail).firstResult() != null) {
-            throw new Its.incom.pw5.service.exception.UserAlreadyExistsException("User with this email already exists.");
+            throw new UserAlreadyExistsException("User with this email already exists.");
         }
 
         // Persist the user

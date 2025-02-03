@@ -3,13 +3,11 @@ package Its.incom.pw5.rest;
 import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.model.enums.UserStatus;
-import Its.incom.pw5.rest.model.UserBookingResponse;
 import Its.incom.pw5.service.EventService;
 import Its.incom.pw5.service.MailService;
 import Its.incom.pw5.service.SessionService;
 import Its.incom.pw5.service.UserService;
 import Its.incom.pw5.service.*;
-import Its.incom.pw5.service.exception.HostNotFoundException;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -158,7 +156,8 @@ public class EventResource {
 
         eventService.updateEvent(id, updatedEvent);
 
-        return Response.ok(Map.of("message", "Event updated successfully.")).build();
+        return Response.ok(Map.of("message", "Event updated successfully."))
+                .build();
     }
 
     @DELETE
@@ -212,7 +211,7 @@ public class EventResource {
 
         if (host == null) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Host not found.")
+                    .entity(Map.of("message", "Host not found."))
                     .build();
         }
 
@@ -224,7 +223,8 @@ public class EventResource {
                 "message", "Event deleted successfully."
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @PUT
@@ -277,7 +277,8 @@ public class EventResource {
                 "event", event
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @PUT
@@ -323,7 +324,8 @@ public class EventResource {
                 "event", event
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @GET
@@ -362,7 +364,8 @@ public class EventResource {
                 "bookedTickets", bookedTickets
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @GET
@@ -404,16 +407,15 @@ public class EventResource {
                 "archivedEvents", archivedEvents
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @GET
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getEvents(@QueryParam("topics") List<String> topics,
-                              @QueryParam("date") String date,
-                              @QueryParam("speakers") List<String> speakers) {
+    public Response getEvents(@QueryParam("topics") List<String> topics, @QueryParam("date") String date, @QueryParam("speakers") List<String> speakers) {
         List<Event> events = new ArrayList<>();
 
         if ((topics == null || topics.isEmpty()) &&
@@ -448,7 +450,8 @@ public class EventResource {
                 "events", events
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @POST
@@ -493,7 +496,9 @@ public class EventResource {
                 "event", createdEvent
         );
 
-        return Response.status(Response.Status.CREATED).entity(responseBody).build();
+        return Response.status(Response.Status.CREATED)
+                .entity(responseBody)
+                .build();
     }
 
     @PUT
@@ -545,7 +550,8 @@ public class EventResource {
                 "message", "Event updated successfully by admin."
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
 
     @DELETE
@@ -597,7 +603,7 @@ public class EventResource {
                 "message", "Event deleted successfully by admin."
         );
 
-        return Response.ok(responseBody).build();
+        return Response.ok(responseBody)
+                .build();
     }
-
 }
