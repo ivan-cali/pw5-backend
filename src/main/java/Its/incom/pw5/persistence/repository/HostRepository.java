@@ -30,44 +30,6 @@ public class HostRepository implements PanacheMongoRepository<Host> {
         delete(host);
     }
 
-    //update host
-//    public Host update(Host host, Map<String, Object> updates){
-//        updates.forEach((key, value) -> {
-//            switch (key) {
-//                case "type":
-//                    if(value == null || !(value instanceof Type)) {
-//                        throw new IllegalArgumentException("Field type must have COMPANY or PARTNER value");
-//                    }
-//                    host.setType((Type) value);
-//                    break;
-//
-//                case "name":
-//                    if(value == null || ((String) value).isEmpty()) {
-//                        throw new IllegalArgumentException("Field name cannot be empty");
-//                    }
-//                    host.setName((String) value);
-//                    break;
-//
-//                case "description":
-//                    if(value == null || ((String) value).isEmpty()) {
-//                        throw new IllegalArgumentException("Field description cannot be empty");
-//                    }
-//                    host.setDescription((String) value);
-//                    break;
-//
-//                case "hashedPsw":
-//                    if (value == null || ((String) value).isEmpty()){
-//                        throw new IllegalArgumentException("Field password cannot be empty");
-//                    }
-//
-//                default:
-//                    throw new IllegalArgumentException("Field " + key + " not valid");
-//            }
-//        });
-//        persistOrUpdate(host);
-//        return host;
-//    }
-
     //hostName already exist
     public boolean hostNameExists(String name){
         return find("name", name).firstResult() != null;

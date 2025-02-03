@@ -149,7 +149,7 @@ public class HostResource {
         }
 
         //User in speakers list are speakers with status already confirmed
-        if (event.getSpeakers() == null){
+        if (event.getSpeakers() == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity(event.getTitle() + " doesn't have confirmed speakers.").build();
         }
 
@@ -171,5 +171,38 @@ public class HostResource {
         );
 
         return Response.ok(responseBody).build();
+    }
+
+    //Update host description (for the host profile)
+    @PUT
+    @Path("/update-description")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateDescription(@CookieParam("SESSION_ID") String sessionId, Host host) {
+        try {
+            if (sessionId == null) {
+                return Response.status(Response.Status.UNAUTHORIZED).entity("Session cookie not found.").build();
+            }
+
+            Session session = sessionService.getSession(sessionId);
+            if (session == null) {
+                return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid session cookie.").build();
+            }
+
+            Host loggedHost = hostService.getHostById(session.getUserId());
+            if (host == null) {
+                return Response.status(Response.Status.NOT_FOUND).entity("Host not found.").build();
+            }
+
+            hostService.updateDescription(loggedHost, host.getDescription());
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Description updated successfully."
+            );
+
+            return Response.ok(responseBody).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+        }
     }
 }

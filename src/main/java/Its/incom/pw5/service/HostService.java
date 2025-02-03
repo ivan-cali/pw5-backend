@@ -212,4 +212,8 @@ public class HostService {
         return hashCalculator.calculateHash(password);
     }
 
+    public void updateDescription(Host host, String description) {
+        host.setDescription(description);
+        hostRepository.updateHost(host);
+    }
 }
