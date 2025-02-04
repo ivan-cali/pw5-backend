@@ -290,7 +290,7 @@ public class EventResource {
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response revokeEvent(@CookieParam("SESSION_ID") String sessionId, ObjectId eventId) {
+    public Response revokeEvent(@CookieParam("SESSION_ID") String sessionId, Map<String, String> body) {
         if (sessionId == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("message", "Session ID is required."))
@@ -316,6 +316,10 @@ public class EventResource {
                     .entity(Map.of("message", "User is not verified."))
                     .build();
         }
+
+        String id = body.get("id");
+
+        ObjectId eventId = new ObjectId(id);
 
         eventService.checkAndRevokeEvent(eventId, user);
 
