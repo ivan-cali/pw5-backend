@@ -835,4 +835,15 @@ public class EventService {
         // Persist the updated event
         eventRepository.updateEvent(existingEvent);
     }
+
+    public List<Event> getEventsByHostName(String hostName) {
+        if (hostName == null) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Host name cannot be null."))
+                    .build());
+        }
+        // Query on the event's "host" field
+        return eventRepository.find("host", hostName).list();
+    }
+
 }
