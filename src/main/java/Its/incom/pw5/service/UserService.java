@@ -13,16 +13,33 @@ import org.bson.types.ObjectId;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @GlobalLog
 @ApplicationScoped
 public class UserService {
+    private static final Pattern SAFE_EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
     private final UserRepository userRepository;
     private final HashCalculator hashCalculator;
 
     public UserService(UserRepository userRepository, HashCalculator hashCalculator) {
         this.userRepository = userRepository;
         this.hashCalculator = hashCalculator;
+    }
+
+    private String validateAndSanitizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Email is required"))
+                    .build());
+        }
+        if (!SAFE_EMAIL_PATTERN.matcher(email).matches()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Invalid email format"))
+                    .build());
+        }
+        return email.trim();
     }
 
     public void deleteUser(String id) {
@@ -85,7 +102,15 @@ public class UserService {
     }
 
     public User checkUserCredentials(String email, String psw) {
+        if (email == null || email.isBlank() || psw == null || psw.isBlank()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Email and password are required"))
+                    .build());
+        }
+
+        String sanitizedEmail = validateAndSanitizeEmail(email);
+
         String hashedPsw = hashCalculator.calculateHash(psw);
-        return userRepository.getUserByCredentials(email, hashedPsw);
+        return userRepository.getUserByCredentials(sanitizedEmail, hashedPsw);
     }
 }

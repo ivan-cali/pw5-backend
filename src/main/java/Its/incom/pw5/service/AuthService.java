@@ -19,10 +19,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @GlobalLog
 @ApplicationScoped
 public class AuthService {
+    private static final Pattern SAFE_EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
     private final AuthRepository authRepository;
     private final HashCalculator hashCalculator;
     private final VerificationTokenRepository verificationTokenRepository;
@@ -31,6 +34,20 @@ public class AuthService {
         this.authRepository = authRepository;
         this.verificationTokenRepository = verificationTokenRepository;
         this.hashCalculator = hashCalculator;
+    }
+
+    private String validateAndSanitizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Email is required"))
+                    .build());
+        }
+        if (!SAFE_EMAIL_PATTERN.matcher(email).matches()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Invalid email format"))
+                    .build());
+        }
+        return email.trim();
     }
 
 
@@ -43,10 +60,12 @@ public class AuthService {
                     .build());
         }
 
+        String sanitizedEmail = validateAndSanitizeEmail(user.getEmail());
+
         User newUser = new User();
         newUser.setFirstName(user.getFirstName());
         newUser.setLastName(user.getLastName());
-        newUser.setEmail(user.getEmail());
+        newUser.setEmail(sanitizedEmail);
         newUser.setHashedPsw(hashedPsw);
         newUser.setStatus(UserStatus.UNVERIFIED);
         newUser.setRole(Role.USER);

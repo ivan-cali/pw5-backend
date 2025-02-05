@@ -1,33 +1,23 @@
 package Its.incom.pw5.persistence.repository;
 
 import Its.incom.pw5.persistence.model.User;
-import Its.incom.pw5.service.exception.UserAlreadyExistsException;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class AuthRepository implements PanacheMongoRepository<User> {
 
-    private static final Pattern SAFE_EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
-
-    private String validateAndSanitizeEmail(String email) {
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email cannot be null or empty.");
-        }
-        if (!SAFE_EMAIL_PATTERN.matcher(email).matches()) {
-            throw new IllegalArgumentException("Invalid email format.");
-        }
-        return email.trim();
-    }
-
     public void register(User user) {
-        String sanitizedEmail = validateAndSanitizeEmail(user.getEmail());
-
         // Check if the user already exists
-        if (find("email", sanitizedEmail).firstResult() != null) {
-            throw new UserAlreadyExistsException("User with this email already exists.");
+        if (find("email", user.getEmail()).firstResult() != null) {
+            throw new WebApplicationException(Response.status(Response.Status.CONFLICT)
+                    .entity(Map.of("error", "User already exists"))
+                    .build());
         }
 
         // Persist the user
@@ -35,17 +25,20 @@ public class AuthRepository implements PanacheMongoRepository<User> {
     }
 
     public void login(String email, String hashedPsw) {
-        String sanitizedEmail = validateAndSanitizeEmail(email);
 
         // Check if the user exists
-        User user = find("email", sanitizedEmail).firstResult();
+        User user = find("email", email).firstResult();
         if (user == null) {
-            throw new IllegalArgumentException("User not found.");
+            throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "User not found"))
+                    .build());
         }
 
         // Validate the password
         if (!user.getHashedPsw().equals(hashedPsw)) {
-            throw new IllegalArgumentException("Invalid password.");
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Invalid credentials"))
+                    .build());
         }
     }
 }

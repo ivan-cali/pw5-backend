@@ -9,7 +9,6 @@ import Its.incom.pw5.rest.model.PasswordEditRequest;
 import Its.incom.pw5.service.exception.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.PersistenceException;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
@@ -45,7 +44,9 @@ public class HostService {
         try {
             User user = userService.getUserById(userId);
             if (user.getEmail() == null) {
-                throw new NotFoundException("User email not found");
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "User email not found"))
+                        .build());
             }
 
             Host newHost = new Host();
@@ -56,22 +57,30 @@ public class HostService {
             newHost.setHostStatus(HostStatus.PENDING);
 
             if (host.getType() == null || host.getType().toString().isEmpty() || host.getName() == null || host.getName().isEmpty() || host.getEmail() == null || host.getEmail().isEmpty()) {
-                throw new IllegalArgumentException("Form cannot have empty fields");
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Missing required fields"))
+                        .build());
             }
 
             //check if host email already exists
             if (hostRepository.hostEmailExists(newHost.getEmail())) {
-                throw new HostAlreadyExistsException("Host with email " + newHost.getEmail() + " already exists");
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Host with email " + newHost.getEmail() + " already exists"))
+                        .build());
             }
 
             //check if host name already exists
             if (hostRepository.hostNameExists(newHost.getName())) {
-                throw new HostAlreadyExistsException("Host with name " + newHost.getName() + " already exists");
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Host with name " + newHost.getName() + " already exists"))
+                        .build());
             }
 
             hostRepository.create(newHost);
         } catch (PersistenceException e) {
-            throw new HostCreationException(e.getMessage());
+            throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("message", "Host creation failed"))
+                    .build());
         }
     }
 
@@ -82,11 +91,15 @@ public class HostService {
             //check if host exists
             hostRepository.getById(host.getId());
             if (host == null) {
-                throw new HostNotFoundException("Host not found");
+                throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "Host not found"))
+                        .build());
             }
             hostRepository.deleteHost(host);
         } catch (PersistenceException e) {
-            throw new HostDeleteException(e.getMessage());
+            throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("message", "Host deletion failed"))
+                    .build());
         }
     }
 
@@ -130,7 +143,9 @@ public class HostService {
             host.setHashedPsw(newHashedPsw);
             hostRepository.updateHost(host);
         } catch (PersistenceException e) {
-            throw new HostUpdateException(e.getMessage());
+            throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("message", "Host password update failed"))
+                    .build());
         }
     }
 
