@@ -16,10 +16,13 @@ import org.bson.types.ObjectId;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @GlobalLog
 @ApplicationScoped
 public class HostService {
+    private static final Pattern SAFE_EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
     private final HostRepository hostRepository;
     private final UserService userService;
     private final HashCalculator hashCalculator;
@@ -28,6 +31,20 @@ public class HostService {
         this.hostRepository = hostRepository;
         this.userService = userService;
         this.hashCalculator = hashCalculator;
+    }
+
+    private String validateAndSanitizeEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Email is required"))
+                    .build());
+        }
+        if (!SAFE_EMAIL_PATTERN.matcher(email).matches()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Invalid email format"))
+                    .build());
+        }
+        return email.trim();
     }
 
     //get all hosts
@@ -49,9 +66,11 @@ public class HostService {
                         .build());
             }
 
+            String sanitizedEmail = validateAndSanitizeEmail(host.getEmail());
+
             Host newHost = new Host();
             newHost.setName(host.getName());
-            newHost.setEmail(host.getEmail());
+            newHost.setEmail(sanitizedEmail);
             newHost.setType(host.getType());
             newHost.setCreatedBy(user.getEmail());
             newHost.setHostStatus(HostStatus.PENDING);
@@ -64,14 +83,14 @@ public class HostService {
 
             //check if host email already exists
             if (hostRepository.hostEmailExists(newHost.getEmail())) {
-                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                throw new WebApplicationException(Response.status(Response.Status.CONFLICT)
                         .entity(Map.of("message", "Host with email " + newHost.getEmail() + " already exists"))
                         .build());
             }
 
             //check if host name already exists
             if (hostRepository.hostNameExists(newHost.getName())) {
-                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                throw new WebApplicationException(Response.status(Response.Status.CONFLICT)
                         .entity(Map.of("message", "Host with name " + newHost.getName() + " already exists"))
                         .build());
             }
