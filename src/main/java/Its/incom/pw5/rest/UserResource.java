@@ -432,7 +432,7 @@ public class UserResource {
 
         Map<String, Object> responseBody = Map.of(
                 "message", "Topic added to favourite topics successfully.",
-                "topic", updatedUser
+                "user", updatedUser
         );
 
         return Response.ok(responseBody)
