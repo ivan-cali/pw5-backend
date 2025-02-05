@@ -5,8 +5,10 @@ import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.EventStatus;
+import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.rest.model.PasswordEditRequest;
 import Its.incom.pw5.service.*;
+import Its.incom.pw5.service.exception.HostDeleteException;
 import Its.incom.pw5.service.exception.HostNotFoundException;
 import Its.incom.pw5.service.exception.HostUpdateException;
 import jakarta.ws.rs.*;
@@ -244,4 +246,46 @@ public class HostResource {
                     .build();
         }
     }
+
+
+    @DELETE
+    @Path("/{hostId}")
+    public Response deleteHost(@CookieParam("SESSION_ID") String sessionId, @PathParam("hostId") ObjectId hostId) {
+        if (sessionId == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Session cookie not found."))
+                    .build();
+        }
+
+        Session session = sessionService.getSession(sessionId);
+        if (session == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Invalid session cookie."))
+                    .build();
+        }
+
+        User user = userService.getUserById(session.getUserId());
+        if (Role.ADMIN != user.getRole()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Logged user is not an admin."))
+                    .build();
+        }
+
+        Host host = hostService.getHostById(hostId.toHexString());
+        if (host == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Host not found."))
+                    .build();
+        }
+
+        try {
+            hostService.deleteHost(user.getId().toHexString(), host);
+            return Response.ok(Map.of("message", "Host deleted successfully.")).build();
+        } catch (HostNotFoundException | HostDeleteException e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("message", e.getMessage()))
+                    .build();
+        }
+    }
 }
+

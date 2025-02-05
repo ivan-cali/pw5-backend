@@ -1,12 +1,15 @@
 package Its.incom.pw5.service;
 
 import Its.incom.pw5.interceptor.GlobalLog;
+import Its.incom.pw5.persistence.model.Event;
 import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.model.enums.HostStatus;
+import Its.incom.pw5.persistence.model.enums.Role;
 import Its.incom.pw5.persistence.repository.HostRepository;
 import Its.incom.pw5.rest.model.PasswordEditRequest;
 import Its.incom.pw5.service.exception.*;
+import io.quarkus.security.UnauthorizedException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.PersistenceException;
 import jakarta.ws.rs.WebApplicationException;
@@ -23,11 +26,13 @@ public class HostService {
     private final HostRepository hostRepository;
     private final UserService userService;
     private final HashCalculator hashCalculator;
+    private final EventService eventService;
 
-    public HostService(HostRepository hostRepository, UserService userService, HashCalculator hashCalculator) {
+    public HostService(HostRepository hostRepository, UserService userService, HashCalculator hashCalculator, EventService eventService) {
         this.hostRepository = hostRepository;
         this.userService = userService;
         this.hashCalculator = hashCalculator;
+        this.eventService = eventService;
     }
 
     //get all hosts
@@ -85,22 +90,35 @@ public class HostService {
     }
 
 
-    //delete host
-    public void delete(Host host) throws HostNotFoundException, HostDeleteException {
-        try {
-            //check if host exists
-            hostRepository.getById(host.getId());
-            if (host == null) {
-                throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
-                        .entity(Map.of("message", "Host not found"))
-                        .build());
-            }
-            hostRepository.deleteHost(host);
-        } catch (PersistenceException e) {
-            throw new WebApplicationException(Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(Map.of("message", "Host deletion failed"))
+    // Delete host and cascade delete events, tickets, etc.
+    public void deleteHost(String userId, Host host) throws HostNotFoundException, HostDeleteException, UnauthorizedException {
+        // Check if the user is an admin
+        User user = userService.getUserById(userId);
+        if (user == null || Role.ADMIN != user.getRole()) {
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("message", "Unauthorized to delete host"))
                     .build());
         }
+
+        // Check if the host exists
+        Host existingHost = hostRepository.getById(host.getId());
+        if (existingHost == null) {
+            throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Host not found"))
+                    .build());
+        }
+
+        // Assuming existingHost is of type Host
+        List<Event> events = eventService.getEventsByHostName(existingHost.getName());
+
+// Cascade delete each event
+        for (Event event : events) {
+            eventService.deleteEvent(event.getId(), existingHost, true);
+        }
+
+        // Finally, delete the host
+        hostRepository.deleteHost(existingHost);
+        System.out.println("Successfully deleted host and all related events created by host: " + existingHost.getName());
     }
 
 
