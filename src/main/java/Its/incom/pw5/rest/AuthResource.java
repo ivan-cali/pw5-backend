@@ -243,6 +243,19 @@ public class AuthResource {
                         .entity(Map.of("message", "Invalid session cookie."))
                         .build();
             }
+            // Get the user by session's user ID
+            User user = userService.getUserById(session.getUserId());
+            if (user == null) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "User not found."))
+                        .build();
+            }
+            // Check if a host has already been registered by this user using the user's email
+            if (hostService.getHostByUserCreatorEmail(user.getEmail()) != null) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity(Map.of("message", "User has already registered a host."))
+                        .build();
+            }
 
             // Check if sessions provides a Host
             if (hostService.getHostById(session.getUserId()) != null) {
