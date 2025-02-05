@@ -2,10 +2,7 @@ package Its.incom.pw5.service;
 
 import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.*;
-import Its.incom.pw5.persistence.model.enums.EventStatus;
-import Its.incom.pw5.persistence.model.enums.Role;
-import Its.incom.pw5.persistence.model.enums.SpeakerInboxStatus;
-import Its.incom.pw5.persistence.model.enums.TicketStatus;
+import Its.incom.pw5.persistence.model.enums.*;
 import Its.incom.pw5.persistence.repository.EventRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
 import Its.incom.pw5.persistence.repository.TicketRepository;
@@ -46,44 +43,82 @@ public class EventService {
     }
 
     public Event createEvent(Event event, String hostName) {
-        if (event.getStartDate().isBefore(LocalDateTime.now())) {
+        // Validate event start date
+        if (event.getStartDate() == null || event.getStartDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("message", "Event start date cannot be in the past."))
+                    .entity(Map.of("message", "Event start date is required and cannot be in the past."))
                     .build());
         }
-        // Set default status to PENDING if not provided
-        if (event.getStatus() == null) {
-            event.setStatus(EventStatus.PENDING);
+
+        // Validate event end date
+        if (event.getEndDate() == null || event.getEndDate().isBefore(LocalDateTime.now())) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Event end date is required and cannot be in the past."))
+                    .build());
+        }
+
+        if (event.getEndDate().isBefore(event.getStartDate())) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Event end date cannot be before the start date."))
+                    .build());
+        }
+
+        // Validate event place
+        if (event.getPlace() == null || event.getPlace().isEmpty()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Event place is required."))
+                    .build());
+        }
+
+        // Validate event title
+        if (event.getTitle() == null || event.getTitle().isEmpty()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Event title is required."))
+                    .build());
+        }
+
+        // Validate speakers (at least one speaker is required)
+        if (event.getPendingSpeakerRequests() == null || event.getPendingSpeakerRequests().isEmpty()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "At least one speaker is required."))
+                    .build());
         }
 
         // Validate that at least one topic is provided
         validateTopics(event);
 
+        // Set default status to PENDING if not provided
+        if (event.getStatus() == null) {
+            event.setStatus(EventStatus.PENDING);
+        }
+
+        // Validate event description
+        if (event.getDescription() == null || event.getDescription().isEmpty()) {
+            event.setDescription("");
+        }
+
+        // Validate event subscription
+        if (event.getEventSubscription() == null || event.getEventSubscription().toString().isEmpty()) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Event subscription is required."))
+                    .build());
+        }
+
+        // Validate max participants
+        if (event.getMaxParticipants() < 0) {
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("message", "Max participants must be 0 or a positive number."))
+                    .build());
+        }
+
         // Create and initialize a new event object
-        Event newEvent = new Event();
-        newEvent.setStartDate(event.getStartDate());
-        newEvent.setEndDate(event.getEndDate());
-        newEvent.setPlace(event.getPlace());
-        newEvent.setTopics(new ArrayList<>(event.getTopics())); // Ensure list copy
-        newEvent.setTitle(event.getTitle());
-        newEvent.setStatus(event.getStatus());
-        newEvent.setEventSubscription(event.getEventSubscription());
-        newEvent.setMaxPartecipants(event.getMaxPartecipants());
-        newEvent.setRegisterdPartecipants(0);
-        newEvent.setDescription("");
-        newEvent.setSpeakers(new ArrayList<>());
-        newEvent.setHost(hostName);
-        newEvent.setTicketIds(new ArrayList<>());
-        newEvent.setPendingSpeakerRequests(
-                event.getPendingSpeakerRequests() != null ?
-                        new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
-        );
+        Event newEvent = initializeNewEvent(event, hostName);
 
         // Persist the Event to generate an ID
         eventRepository.addEvent(newEvent);
 
         // Pre-create tickets if the event has a maximum number of participants
-        if (newEvent.getMaxPartecipants() > 0) {
+        if (newEvent.getMaxParticipants() > 0) {
             createUnassignedTickets(newEvent);
         }
 
@@ -97,7 +132,7 @@ public class EventService {
 
     private void createUnassignedTickets(Event event) {
         List<ObjectId> ticketIds = new ArrayList<>();
-        for (int i = 0; i < event.getMaxPartecipants(); i++) {
+        for (int i = 0; i < event.getMaxParticipants(); i++) {
             Ticket ticket = new Ticket(null, event.getId(), TicketStatus.PENDING);
             ticketRepository.addTicket(ticket);
             ticketIds.add(ticket.getId());
@@ -122,8 +157,8 @@ public class EventService {
 
 
         // Track changes to the max participants field
-        boolean maxParticipantsChanged = updatedEvent.getMaxPartecipants() > 0
-                                         && updatedEvent.getMaxPartecipants() != existingEvent.getMaxPartecipants();
+        boolean maxParticipantsChanged = updatedEvent.getMaxParticipants() > 0
+                && updatedEvent.getMaxParticipants() != existingEvent.getMaxParticipants();
 
         // Update editable fields
         updateEditableFields(existingEvent, updatedEvent);
@@ -182,7 +217,7 @@ public class EventService {
                 } catch (WebApplicationException e) {
                     // Log the error and propagate it to the client
                     System.err.println("Error processing speaker request for email: "
-                                       + speakerRequest.getEmail() + ". Error: " + e.getMessage());
+                            + speakerRequest.getEmail() + ". Error: " + e.getMessage());
                     throw e;
                 }
             }
@@ -239,8 +274,8 @@ public class EventService {
         if (updatedEvent.getEndDate() != null) {
             existingEvent.setEndDate(updatedEvent.getEndDate());
         }
-        if (updatedEvent.getMaxPartecipants() > 0) {
-            existingEvent.setMaxPartecipants(updatedEvent.getMaxPartecipants());
+        if (updatedEvent.getMaxParticipants() > 0) {
+            existingEvent.setMaxParticipants(updatedEvent.getMaxParticipants());
         }
         if (updatedEvent.getEventSubscription() != null) {
             existingEvent.setEventSubscription(updatedEvent.getEventSubscription());
@@ -438,7 +473,7 @@ public class EventService {
         }
 
         // Check if the event is full. If the event is full, the user will be put on a waiting list.
-        if (existingEvent.getMaxPartecipants() > 0 && existingEvent.getRegisterdPartecipants() >= existingEvent.getMaxPartecipants()) {
+        if (existingEvent.getMaxParticipants() > 0 && existingEvent.getRegisteredParticipants() >= existingEvent.getMaxParticipants()) {
             // Check if the waiting list already exists
             waitingListService.checkAndCreateWaitingList(existingEvent.getId());
 
@@ -462,7 +497,7 @@ public class EventService {
         // If the event has a limited number of participants, assign an unassigned ticket
         Ticket assignedTicket;
 
-        if (existingEvent.getMaxPartecipants() > 0) {
+        if (existingEvent.getMaxParticipants() > 0) {
             // Find an existing unassigned ticket for the event
             assignedTicket = ticketRepository.find("eventId = ?1 and status = ?2", existingEvent.getId(), TicketStatus.PENDING)
                     .firstResult();
@@ -572,10 +607,10 @@ public class EventService {
                 bookedEvent.getId().equals(existingEvent.getId()));
 
         // Remove user from the event's registered participants
-        existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() - 1);
+        existingEvent.setRegisteredParticipants(existingEvent.getRegisteredParticipants() - 1);
 
         // Check if the event is full. If the event is full, check if it has a waiting list and add the first user to the event
-        if (existingEvent.getMaxPartecipants() > 0 && existingEvent.getRegisterdPartecipants() < existingEvent.getMaxPartecipants()) {
+        if (existingEvent.getMaxParticipants() > 0 && existingEvent.getRegisteredParticipants() < existingEvent.getMaxParticipants()) {
             // Check if the waiting list already exists
             WaitingList waitingList = waitingListService.getWaitingListByEventId(existingEvent.getId());
 
@@ -594,7 +629,7 @@ public class EventService {
                 }
 
                 // Add the user to the event
-                existingEvent.setRegisterdPartecipants(existingEvent.getRegisterdPartecipants() + 1);
+                existingEvent.setRegisteredParticipants(existingEvent.getRegisteredParticipants() + 1);
                 firstUser.getUserDetails().getBookedEvents().add(existingEvent);
                 firstUser.getUserDetails().getBookedTickets().add(existingTicket);
 
@@ -643,15 +678,15 @@ public class EventService {
 
             // Determine the number of registered participants
             int registeredParticipants;
-            if (event.getMaxPartecipants() > 0) {
-                registeredParticipants = (int) Math.min(ticketCount, event.getMaxPartecipants());
+            if (event.getMaxParticipants() > 0) {
+                registeredParticipants = (int) Math.min(ticketCount, event.getMaxParticipants());
             } else {
                 // If no max participants limit, use the actual ticket count
                 registeredParticipants = (int) ticketCount;
             }
 
             // Update the registered participants field with the ticket count
-            event.setRegisterdPartecipants(registeredParticipants);
+            event.setRegisteredParticipants(registeredParticipants);
 
             // Persist the updated event
             eventRepository.updateEvent(event);
@@ -844,6 +879,28 @@ public class EventService {
         }
         // Query on the event's "host" field
         return eventRepository.find("host", hostName).list();
+    }
+
+    private static Event initializeNewEvent(Event event, String hostName) {
+        Event newEvent = new Event();
+        newEvent.setStartDate(event.getStartDate());
+        newEvent.setEndDate(event.getEndDate());
+        newEvent.setPlace(event.getPlace());
+        newEvent.setTopics(new ArrayList<>(event.getTopics())); // Ensure list copy
+        newEvent.setTitle(event.getTitle());
+        newEvent.setStatus(event.getStatus());
+        newEvent.setEventSubscription(event.getEventSubscription());
+        newEvent.setMaxParticipants(event.getMaxParticipants());
+        newEvent.setRegisteredParticipants(0);
+        newEvent.setDescription(event.getDescription());
+        newEvent.setSpeakers(new ArrayList<>());
+        newEvent.setHost(hostName);
+        newEvent.setTicketIds(new ArrayList<>());
+        newEvent.setPendingSpeakerRequests(
+                event.getPendingSpeakerRequests() != null ?
+                        new ArrayList<>(event.getPendingSpeakerRequests()) : new ArrayList<>()
+        );
+        return newEvent;
     }
 
 }

@@ -5,7 +5,6 @@ import Its.incom.pw5.persistence.model.Session;
 import Its.incom.pw5.persistence.model.User;
 import Its.incom.pw5.persistence.repository.SessionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

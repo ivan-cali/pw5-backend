@@ -10,7 +10,6 @@ import jakarta.inject.Inject;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Map;
 
 @ApplicationScoped
 public class MetricsLogger {

@@ -13,7 +13,7 @@ public class Host {
     private String name;
     private String email;
     private String hashedPsw;
-    private String provvisoryPsw;
+    private String provisoryPsw;
     private String description;
     private List<Event> pastEvents;
     private List<Event> programmedEvents;
@@ -101,12 +101,12 @@ public class Host {
         this.programmedEvents = programmedEvents;
     }
 
-    public String getProvvisoryPsw() {
-        return provvisoryPsw;
+    public String getProvisoryPsw() {
+        return provisoryPsw;
     }
 
-    public void setProvvisoryPsw(String provvisoryPsw) {
-        this.provvisoryPsw = provvisoryPsw;
+    public void setProvisoryPsw(String provisoryPsw) {
+        this.provisoryPsw = provisoryPsw;
     }
 
 }

@@ -326,7 +326,7 @@ public class UserResource {
         String generatedPsw = UUID.randomUUID().toString();
 
         String hashedPsw = hashCalculator.calculateHash(generatedPsw);
-        hostRequest.setProvvisoryPsw(hashedPsw);  // Set the hashed temporary password
+        hostRequest.setProvisoryPsw(hashedPsw);  // Set the hashed temporary password
 
         hostService.update(hostRequest, generatedPsw);
 

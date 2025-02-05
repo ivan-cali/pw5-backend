@@ -7,7 +7,6 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 
 import java.util.Map;
-import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class AuthRepository implements PanacheMongoRepository<User> {

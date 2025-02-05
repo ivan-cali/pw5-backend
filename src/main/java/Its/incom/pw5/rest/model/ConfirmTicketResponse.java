@@ -3,8 +3,8 @@ package Its.incom.pw5.rest.model;
 import Its.incom.pw5.persistence.model.Ticket;
 
 public class ConfirmTicketResponse {
-    private String ticketCode;
-    private String status;
+    private final String ticketCode;
+    private final String status;
 
     public ConfirmTicketResponse(Ticket ticket) {
         this.ticketCode = ticket.getTicketCode();

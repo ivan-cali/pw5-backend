@@ -230,7 +230,7 @@ public class HostService {
         String hashedInputPassword = hashPassword(inputPassword);
 
         // Check if the host is still using the provisional password
-        if (validHost.getProvvisoryPsw() != null && hashedInputPassword.equals(validHost.getProvvisoryPsw())) {
+        if (validHost.getProvisoryPsw() != null && hashedInputPassword.equals(validHost.getProvisoryPsw())) {
             throw new WebApplicationException(Response.status(Response.Status.FORBIDDEN)
                     .entity(Map.of("message", "You must change your provisional password before logging in."))
                     .build());

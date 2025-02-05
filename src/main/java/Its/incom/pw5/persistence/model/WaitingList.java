@@ -10,7 +10,7 @@ import java.util.Objects;
 public class WaitingList {
     private ObjectId id;
     private ObjectId eventId;
-    private List<String> WaitingUsers;
+    private List<String> waitingUsers;
 
     public ObjectId getId() {
         return id;
@@ -29,22 +29,22 @@ public class WaitingList {
     }
 
     public List<String> getWaitingUsers() {
-        return WaitingUsers;
+        return waitingUsers;
     }
 
     public void setWaitingUsers(List<String> waitingUsers) {
-        this.WaitingUsers = waitingUsers;
+        this.waitingUsers = waitingUsers;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         WaitingList that = (WaitingList) o;
-        return Objects.equals(id, that.id) && Objects.equals(eventId, that.eventId) && Objects.equals(WaitingUsers, that.WaitingUsers);
+        return Objects.equals(id, that.id) && Objects.equals(eventId, that.eventId) && Objects.equals(waitingUsers, that.waitingUsers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, eventId, WaitingUsers);
+        return Objects.hash(id, eventId, waitingUsers);
     }
 }

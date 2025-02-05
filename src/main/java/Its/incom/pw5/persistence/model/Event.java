@@ -23,16 +23,16 @@ public class Event {
     private EventStatus status;
     private EventSubscription EventSubscription;
     private List<User> pendingSpeakerRequests;
-    private int maxPartecipants;
-    private int registerdPartecipants;
+    private int maxParticipants;
+    private int registeredParticipants;
     private List<ObjectId> ticketIds;
 
 
-    public Its.incom.pw5.persistence.model.enums.EventSubscription getEventSubscription() {
+    public EventSubscription getEventSubscription() {
         return EventSubscription;
     }
 
-    public void setEventSubscription(Its.incom.pw5.persistence.model.enums.EventSubscription eventSubscription) {
+    public void setEventSubscription(EventSubscription eventSubscription) {
         EventSubscription = eventSubscription;
     }
 
@@ -123,20 +123,20 @@ public class Event {
         this.status = status;
     }
 
-    public int getMaxPartecipants() {
-        return maxPartecipants;
+    public int getMaxParticipants() {
+        return maxParticipants;
     }
 
-    public void setMaxPartecipants(int maxPartecipants) {
-        this.maxPartecipants = maxPartecipants;
+    public void setMaxParticipants(int maxParticipants) {
+        this.maxParticipants = maxParticipants;
     }
 
-    public int getRegisterdPartecipants() {
-        return registerdPartecipants;
+    public int getRegisteredParticipants() {
+        return registeredParticipants;
     }
 
-    public void setRegisterdPartecipants(int registerdPartecipants) {
-        this.registerdPartecipants = registerdPartecipants;
+    public void setRegisteredParticipants(int registeredParticipants) {
+        this.registeredParticipants = registeredParticipants;
     }
 
     public String getDescription() {
@@ -151,11 +151,11 @@ public class Event {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Event event = (Event) o;
-        return maxPartecipants == event.maxPartecipants && registerdPartecipants == event.registerdPartecipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(description, event.description) && Objects.equals(host, event.host) && Objects.equals(title, event.title) && status == event.status && EventSubscription == event.EventSubscription && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests) && Objects.equals(ticketIds, event.ticketIds);
+        return maxParticipants == event.maxParticipants && registeredParticipants == event.registeredParticipants && Objects.equals(id, event.id) && Objects.equals(startDate, event.startDate) && Objects.equals(endDate, event.endDate) && Objects.equals(place, event.place) && Objects.equals(speakers, event.speakers) && Objects.equals(topics, event.topics) && Objects.equals(description, event.description) && Objects.equals(host, event.host) && Objects.equals(title, event.title) && status == event.status && EventSubscription == event.EventSubscription && Objects.equals(pendingSpeakerRequests, event.pendingSpeakerRequests) && Objects.equals(ticketIds, event.ticketIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, startDate, endDate, place, speakers, topics, description, host, title, status, EventSubscription, pendingSpeakerRequests, maxPartecipants, registerdPartecipants, ticketIds);
+        return Objects.hash(id, startDate, endDate, place, speakers, topics, description, host, title, status, EventSubscription, pendingSpeakerRequests, maxParticipants, registeredParticipants, ticketIds);
     }
 }
