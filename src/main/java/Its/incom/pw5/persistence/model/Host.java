@@ -9,15 +9,15 @@ import java.util.List;
 @MongoEntity(collection = "host")
 public class Host {
     private ObjectId id;
-    private Type type;
-    private String name;
-    private String email;
+    private Type type; // required
+    private String name; // required
+    private String email; // required
     private String hashedPsw;
     private String provisoryPsw;
-    private String description;
-    private List<Event> pastEvents;
-    private List<Event> programmedEvents;
-    private String createdBy;
+    private String description; // ""
+    private List<Event> pastEvents; // []
+    private List<Event> programmedEvents; // []
+    private String createdBy; // required
 
     private HostStatus hostStatus;
 

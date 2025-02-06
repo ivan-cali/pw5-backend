@@ -4,6 +4,7 @@ import Its.incom.pw5.interceptor.GlobalLog;
 import Its.incom.pw5.persistence.model.*;
 import Its.incom.pw5.persistence.model.enums.*;
 import Its.incom.pw5.persistence.repository.EventRepository;
+import Its.incom.pw5.persistence.repository.HostRepository;
 import Its.incom.pw5.persistence.repository.SpeakerInboxRepository;
 import Its.incom.pw5.persistence.repository.TicketRepository;
 import io.quarkus.runtime.StartupEvent;
@@ -31,8 +32,9 @@ public class EventService {
     private final WaitingListService waitingListService;
     private final MailService mailService;
     private final TicketRepository ticketRepository;
+    private final HostRepository hostRepository;
 
-    public EventService(EventRepository eventRepository, TicketRepository ticketRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository, WaitingListService waitingListService, MailService mailService) {
+    public EventService(EventRepository eventRepository, TicketRepository ticketRepository, TopicService topicService, UserService userService, SpeakerInboxRepository speakerInboxRepository, WaitingListService waitingListService, MailService mailService, HostRepository hostRepository) {
         this.eventRepository = eventRepository;
         this.topicService = topicService;
         this.ticketRepository = ticketRepository;
@@ -40,9 +42,13 @@ public class EventService {
         this.speakerInboxRepository = speakerInboxRepository;
         this.waitingListService = waitingListService;
         this.mailService = mailService;
+        this.hostRepository = hostRepository;
+    }
+    public Event createEvent(Event event, String hostName) {
+        return createEvent(event, hostName, null);
     }
 
-    public Event createEvent(Event event, String hostName) {
+    public Event createEvent(Event event, String hostName, ObjectId hostId) {
         // Validate event start date
         if (event.getStartDate() == null || event.getStartDate().isBefore(LocalDateTime.now())) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
@@ -127,6 +133,23 @@ public class EventService {
 
         event.setPendingSpeakerRequests(null);
 
+        // Check if the creation is done by an admin
+        if (!"Admin".equals(hostName)) {
+            // Retrieve the host by its ObjectId (if hostId is a valid ObjectId string)
+            if (!ObjectId.isValid(hostId.toHexString())) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Invalid host ID format."))
+                        .build());
+            }
+            Host host = hostRepository.getById(hostId);
+            if (host == null) {
+                throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("message", "Host not found."))
+                        .build());
+            }
+            host.getProgrammedEvents().add(newEvent);
+            hostRepository.update(host);
+        }
         return newEvent;
     }
 
@@ -202,6 +225,20 @@ public class EventService {
 
         // Persist the updated event
         eventRepository.updateEvent(existingEvent);
+        // Update the event inside the host's programmed events, unless the host is "Admin"
+        if (!"Admin".equals(existingEvent.getHost())) {
+            // Query the host by its name instead of treating it as an ObjectId
+            Host host = hostRepository.find("name", existingEvent.getHost()).firstResult();
+            if (host != null) {
+                for (int i = 0; i < host.getProgrammedEvents().size(); i++) {
+                    if (host.getProgrammedEvents().get(i).getId().equals(existingEvent.getId())) {
+                        host.getProgrammedEvents().set(i, existingEvent);
+                        break;
+                    }
+                }
+                hostRepository.update(host);
+            }
+        }
     }
 
 
@@ -367,6 +404,14 @@ public class EventService {
                 }
 
                 deleteUnassignedTickets(event);
+
+                // Move the event from programmedEvents to pastEvents inside the host
+                Host host = hostRepository.find("name", event.getHost()).firstResult();
+                if (host != null) {
+                    host.getProgrammedEvents().removeIf(programmedEvent -> programmedEvent.getId().equals(event.getId()));
+                    host.getPastEvents().add(event);
+                    hostRepository.update(host);
+                }
             }
         } else {
             System.out.println("No events to archive at this time.");
@@ -744,6 +789,12 @@ public class EventService {
             throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("message", "Host is not authorized to delete the event."))
                     .build());
+        }
+        // Remove from programmedEvents inside host (if not Admin)
+        if (!"Admin".equals(event.getHost())) {
+            // Remove the event from host's programmed events
+            host.getProgrammedEvents().removeIf(programmedEvent -> programmedEvent.getId().equals(event.getId()));
+            hostRepository.update(host);
         }
 
         // Remove the event from host both programmed (if CONFIRMED) and past (if ARCHIVED) events

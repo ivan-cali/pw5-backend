@@ -73,7 +73,7 @@ public class EventResource {
                     .build();
         }
 
-        Event createdEvent = eventService.createEvent(event, host.getName());
+        Event createdEvent = eventService.createEvent(event, host.getName(), host.getId());
 
         return Response.status(Response.Status.CREATED)
                 .entity(Map.of("message", "Event created successfully.", "event", createdEvent))

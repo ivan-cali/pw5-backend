@@ -16,6 +16,7 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,13 +72,42 @@ public class HostService {
                         .build());
             }
 
+            // Validate and sanitize email
+            if (host.getEmail() == null || host.getEmail().isBlank()) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Email is required"))
+                        .build());
+            }
+
             String sanitizedEmail = validateAndSanitizeEmail(host.getEmail());
+
+            // validate and sanitize name
+            if (host.getName() == null || host.getName().isBlank()) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Name is required"))
+                        .build());
+            }
+            //validate and sanitize type
+            if (host.getType() == null) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Type is required"))
+                        .build());
+            }
+            // validate and sanitize createdBy
+            if (user.getEmail() == null || user.getEmail().isBlank()) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "User email is required"))
+                        .build());
+            }
 
             Host newHost = new Host();
             newHost.setName(host.getName());
             newHost.setEmail(sanitizedEmail);
             newHost.setType(host.getType());
             newHost.setCreatedBy(user.getEmail());
+            newHost.setDescription("");
+            newHost.setProgrammedEvents(new ArrayList<>());
+            newHost.setPastEvents(new ArrayList<>());
             newHost.setHostStatus(HostStatus.PENDING);
 
             if (host.getType() == null || host.getType().toString().isEmpty() || host.getName() == null || host.getName().isEmpty() || host.getEmail() == null || host.getEmail().isEmpty()) {
