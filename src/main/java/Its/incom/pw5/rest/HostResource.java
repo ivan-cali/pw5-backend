@@ -60,6 +60,21 @@ public class HostResource {
         }
     }
 
+    @GET
+    @Path("/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
+    public Response getHostById(@PathParam("id") ObjectId hostId) {
+        Host host = hostService.getHostById(hostId.toHexString());
+        if (host == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("message", "Host not found."))
+                    .build();
+        }
+        return Response.ok(host).build();
+    }
+
     @PUT
     @Path("/change-password")
     @Consumes(MediaType.APPLICATION_JSON)
