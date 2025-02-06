@@ -4,9 +4,12 @@ import Its.incom.pw5.persistence.model.Host;
 import Its.incom.pw5.service.exception.InvalidInputException;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @ApplicationScoped
@@ -18,10 +21,14 @@ public class HostRepository implements PanacheMongoRepository<Host> {
     // Validates and sanitizes a name field
     private String validateAndSanitizeName(String name) {
         if (name == null || name.isBlank()) {
-            throw new InvalidInputException("Name cannot be null or empty.");
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Name is required"))
+                    .build());
         }
         if (!SAFE_NAME_PATTERN.matcher(name).matches()) {
-            throw new InvalidInputException("Invalid name format.");
+            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Invalid name format"))
+                    .build());
         }
         return name.trim();
     }
