@@ -206,10 +206,12 @@ public class HostResource {
         eventService.updateEventStatus(event);
 
         List<Event> hostProgrammedEvents = host.getProgrammedEvents();
-        if (hostProgrammedEvents == null) {
-            hostProgrammedEvents = new ArrayList<>();
+        for (Event e : hostProgrammedEvents) {
+            if (e.getId().equals(event.getId())) {
+                e.setStatus(EventStatus.CONFIRMED);
+            }
         }
-        hostProgrammedEvents.add(event);
+
         host.setProgrammedEvents(hostProgrammedEvents);
         hostService.updateEvents(host);
 
