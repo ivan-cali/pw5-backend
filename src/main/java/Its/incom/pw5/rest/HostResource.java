@@ -181,7 +181,7 @@ public class HostResource {
         event = eventService.getEventById(event.getId());
 
         //event is created by this host
-        if (!event.getHost().equals(host.getEmail())) {
+        if (!event.getHost().equals(host.getName())) {
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("message", "Unauthorized access."))
                     .build();
