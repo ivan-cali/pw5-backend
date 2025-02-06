@@ -14,6 +14,7 @@ public class Ticket {
     private ObjectId eventId;
     private String ticketCode;
     private TicketStatus status;
+    private String qrCodeUrl;
 
     // No-argument constructor
     public Ticket() {
@@ -86,5 +87,13 @@ public class Ticket {
     @Override
     public int hashCode() {
         return Objects.hash(id, userId, eventId, ticketCode, status);
+    }
+
+    public void setQrCodeUrl(String qrCodeUrl) {
+        this.qrCodeUrl = qrCodeUrl;
+    }
+
+    public String getQrCodeUrl() {
+        return qrCodeUrl;
     }
 }

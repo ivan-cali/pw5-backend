@@ -41,12 +41,6 @@ public class TicketService {
                     .build());
         }
 
-        // Verify that the ticket belongs to the user
-        if (!existingTicket.getUserId().toHexString().equals(userId)) {
-            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("error", "Ticket does not belong to the user."))
-                    .build());
-        }
 
         if (existingTicket.getStatus() == TicketStatus.CONFIRMED) {
             throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
@@ -107,6 +101,9 @@ public class TicketService {
 
         // Proceed to delete the ticket
         ticketRepository.deleteTicket(existingTicket);
+    }
+    public String getQrCodeUrl(String ticketCode) {
+        return "http://localhost:8080/ticket/" + ticketCode + "/qr-code";
     }
 }
 

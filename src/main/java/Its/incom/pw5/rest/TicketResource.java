@@ -8,6 +8,7 @@ import Its.incom.pw5.rest.model.ConfirmTicketResponse;
 import Its.incom.pw5.service.SessionService;
 import Its.incom.pw5.service.TicketService;
 import Its.incom.pw5.service.UserService;
+import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -36,47 +37,25 @@ public class TicketResource {
 
     @POST
     @Path("/confirm")
-    @Counted(name = "api_calls_total", description = "Total number of API calls")
-    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response confirmTicket(@CookieParam("SESSION_ID") String sessionId, @Valid ConfirmTicketRequest request) {
+    public Response confirmTicket(@Valid ConfirmTicketRequest request) {
+        // Confirm ticket based only on the ticket code
+        Ticket confirmedTicket = ticketService.confirmTicket(request.getTicketCode(), null);
 
-        if (sessionId == null || sessionId.isBlank()) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "Session ID is required."))
+        if (confirmedTicket == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Invalid ticket code."))
                     .build();
         }
 
-        Session session = sessionService.getSession(sessionId);
-        if (session == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "Invalid session ID."))
-                    .build();
-        }
-
-        // Retrieve User
-        User user = userService.getUserById(session.getUserId());
-        if (user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(Map.of("message", "User not found."))
-                    .build();
-        }
-
-        // Confirm the ticket using user's ObjectId as hex string
-        Ticket confirmedTicket = ticketService.confirmTicket(
-                request.getTicketCode(),
-                user.getId().toHexString()
-        );
-
-        Map<String, Object> responseBody = Map.of(
+        return Response.ok(Map.of(
                 "message", "Ticket confirmed successfully.",
                 "ticket", new ConfirmTicketResponse(confirmedTicket)
-        );
-
-        return Response.ok(responseBody)
-                .build();
+        )).build();
     }
+
+
 
     @DELETE
     @Path("/delete")

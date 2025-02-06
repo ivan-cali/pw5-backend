@@ -24,15 +24,17 @@ public class EventResource {
     private final UserService userService;
     private final MailService mailService;
     private final HostService hostService;
+    private final TicketService ticketService;
 
-    public EventResource(EventService eventService, SessionService sessionService, UserService userService, MailService mailService, HostService hostService) {
+
+    public EventResource(EventService eventService, SessionService sessionService, UserService userService, MailService mailService, HostService hostService, TicketService ticketService) {
         this.eventService = eventService;
         this.sessionService = sessionService;
         this.userService = userService;
         this.mailService = mailService;
         this.hostService = hostService;
+        this.ticketService = ticketService;
     }
-
     @POST
     @Counted(name = "api_calls_total", description = "Total number of API calls")
     @Timed(name = "api_call_duration", description = "Time taken to process API calls")
@@ -361,6 +363,11 @@ public class EventResource {
 
         List<Event> bookedEvents = user.getUserDetails().getBookedEvents();
         List<Ticket> bookedTickets = user.getUserDetails().getBookedTickets();
+
+        for (Ticket ticket : bookedTickets) {
+            String ticketCode = ticket.getTicketCode();
+            ticket.setQrCodeUrl(ticketService.getQrCodeUrl(ticketCode));
+        }
 
         Map<String, Object> responseBody = Map.of(
                 "message", "User booked events and tickets retrieved successfully.",
