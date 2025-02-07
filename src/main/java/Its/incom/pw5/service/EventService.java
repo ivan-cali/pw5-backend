@@ -147,6 +147,10 @@ public class EventService {
                         .entity(Map.of("message", "Host not found."))
                         .build());
             }
+
+            if (host.getProgrammedEvents() == null) {
+                host.setProgrammedEvents(new ArrayList<>());
+            }
             host.getProgrammedEvents().add(newEvent);
             hostRepository.update(host);
         }
