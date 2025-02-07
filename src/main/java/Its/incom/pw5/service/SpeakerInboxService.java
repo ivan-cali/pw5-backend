@@ -145,4 +145,13 @@ public class SpeakerInboxService {
             return speakerInboxRepository.getRequestsByStatus(requestStatus);
         }
     }
+
+    public List<SpeakerInbox> getConfirmedRequestsForSpeaker(ObjectId speakerId) {
+        User speaker = userRepository.findByIdOptional(speakerId)
+                .orElseThrow(() -> new WebApplicationException(Response.status(Response.Status.NOT_FOUND)
+                        .entity(Map.of("error", "Speaker not found."))
+                        .build()));
+
+        return speakerInboxRepository.findConfirmedRequestsByEmail(speaker.getEmail());
+    }
 }

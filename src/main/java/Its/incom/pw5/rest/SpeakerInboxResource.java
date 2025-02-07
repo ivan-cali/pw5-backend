@@ -117,4 +117,46 @@ public class SpeakerInboxResource {
                     .build();
         }
     }
+
+    @GET
+    @Path("/{speakerId}/requests")
+    @Counted(name = "api_calls_total", description = "Total number of API calls")
+    @Timed(name = "api_call_duration", description = "Time taken to process API calls")
+    public Response getSpeakerConfirmedRequests(@PathParam("speakerId") ObjectId speakerId) {
+        try {
+            if (speakerId == null) {
+                throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("message", "Speaker ID cannot be null."))
+                        .build());
+            }
+
+            List<SpeakerInbox> speakerRequests = speakerInboxService.getConfirmedRequestsForSpeaker(speakerId);
+
+            if (speakerRequests == null || speakerRequests.isEmpty()) {
+                Map<String, Object> responseBody = Map.of(
+                        "message", "Speaker has 0 requests.",
+                        "requests", List.of()
+                );
+
+                return Response.ok(responseBody)
+                        .build();
+            }
+
+            Map<String, Object> responseBody = Map.of(
+                    "message", "Requests retrieved successfully.",
+                    "requests", speakerRequests
+            );
+
+            return Response.ok(responseBody)
+                    .build();
+        } catch (WebApplicationException ex) {
+            return Response.status(ex.getResponse().getStatus())
+                    .entity(Map.of("message", ex.getMessage()))
+                    .build();
+        } catch (Exception ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("message", "An unexpected error occurred."))
+                    .build();
+        }
+    }
 }
