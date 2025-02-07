@@ -578,6 +578,9 @@ public class EventService {
         // 5. Update event's user's booked events
         user.getUserDetails().getBookedEvents().add(existingEvent);
 
+        // 6. Update registered partecipants by giving a +1
+        existingEvent.setRegisteredParticipants(existingEvent.getRegisteredParticipants() + 1);
+
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUser(user);
