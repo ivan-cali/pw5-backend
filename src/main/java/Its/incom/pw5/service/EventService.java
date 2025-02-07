@@ -584,7 +584,6 @@ public class EventService {
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUser(user);
-        updateRegisteredParticipants();
     }
 
     public void checkAndRevokeEvent(ObjectId eventId, User user) {
@@ -707,7 +706,6 @@ public class EventService {
         // Persist the updated event and user
         eventRepository.updateEvent(existingEvent);
         userService.updateUser(user);
-        updateRegisteredParticipants();
     }
 
     public Event getEventById(ObjectId eventId) {
@@ -717,37 +715,38 @@ public class EventService {
                         .build()));
     }
 
-    @Scheduled(cron = "0 0 0 * * ?")  // Runs every day at midnight
-    public void updateRegisteredParticipants() {
-        System.out.println("Scheduled task 'updateRegisteredParticipants' started.");
-
-        // Fetch all events from the database
-        List<Event> allEvents = eventRepository.findAll().list();
-
-        for (Event event : allEvents) {
-            // Count only tickets with a userId assigned for the event
-            long ticketCount = ticketRepository.count("{ eventId: ?1, userId: { $ne: null } }", event.getId());
-
-            // Determine the number of registered participants
-            int registeredParticipants;
-            if (event.getMaxParticipants() > 0) {
-                registeredParticipants = (int) Math.min(ticketCount, event.getMaxParticipants());
-            } else {
-                // If no max participants limit, use the actual ticket count
-                registeredParticipants = (int) ticketCount;
-            }
-
-            // Update the registered participants field with the ticket count
-            event.setRegisteredParticipants(registeredParticipants);
-
-            // Persist the updated event
-            eventRepository.updateEvent(event);
-
-            System.out.println("Updated event '" + event.getTitle() + "' with " + ticketCount + " registered participants.");
-        }
-
-        System.out.println("Scheduled task 'updateRegisteredParticipants' completed.");
-    }
+//     to be fixed if wanted
+//    @Scheduled(cron = "0 0 0 * * ?")  // Runs every day at midnight
+//    public void updateRegisteredParticipants() {
+//        System.out.println("Scheduled task 'updateRegisteredParticipants' started.");
+//
+//        // Fetch all events from the database
+//        List<Event> allEvents = eventRepository.findAll().list();
+//
+//        for (Event event : allEvents) {
+//            // Count only tickets with a userId assigned for the event
+//            long ticketCount = ticketRepository.count("{ eventId: ?1, userId: { $ne: null } }", event.getId());
+//
+//            // Determine the number of registered participants
+//            int registeredParticipants;
+//            if (event.getMaxParticipants() > 0) {
+//                registeredParticipants = (int) Math.min(ticketCount, event.getMaxParticipants());
+//            } else {
+//                // If no max participants limit, use the actual ticket count
+//                registeredParticipants = (int) ticketCount;
+//            }
+//
+//            // Update the registered participants field with the ticket count
+//            event.setRegisteredParticipants(registeredParticipants);
+//
+//            // Persist the updated event
+//            eventRepository.updateEvent(event);
+//
+//            System.out.println("Updated event '" + event.getTitle() + "' with " + ticketCount + " registered participants.");
+//        }
+//
+//        System.out.println("Scheduled task 'updateRegisteredParticipants' completed.");
+//    }
 
     public List<Event> getEventsByTopic(List<String> topics) {
         return eventRepository.getEventsByTopic(topics);
